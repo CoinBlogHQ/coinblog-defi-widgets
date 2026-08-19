@@ -1,0 +1,92 @@
+/* Coin Blog PNG brand assets. Compact full logo in site chrome, phoenix mark in small placements. */
+:root{
+  --coinblog-logo-full:url('/theme/assets/coin-blog-logo-full.png?v=20260725-png');
+  --coinblog-logo-icon:url('/theme/assets/coin-blog-logo-icon.png?v=20260725-png');
+}
+
+/* Compact horizontal logo: does not occupy the full header height. */
+.nav-brand{
+  min-width:180px!important;
+  height:78px!important;
+  gap:0!important;
+  overflow:visible!important;
+  align-items:center!important;
+}
+.nav-brand::before{
+  content:"";
+  display:block;
+  width:170px;
+  height:52px;
+  flex:0 0 170px;
+  background-image:var(--coinblog-logo-full);
+  background-position:left center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  filter:none;
+}
+.nav-brand>.brand-logo-icon,
+.nav-brand>.brand-wordmark,
+.nav-brand>.brand-icon,
+.nav-brand>.brand-name{
+  display:none!important;
+}
+
+/* Shared footer uses the same full PNG. */
+.cb-foot-logo{
+  gap:0!important;
+  min-height:54px;
+}
+.cb-foot-logo::before{
+  content:"";
+  display:block;
+  width:176px;
+  height:54px;
+  flex:0 0 176px;
+  background-image:var(--coinblog-logo-full);
+  background-position:left center;
+  background-repeat:no-repeat;
+  background-size:contain;
+}
+.cb-foot-logo>img,
+.cb-foot-logo>.cb-foot-word{
+  display:none!important;
+}
+
+/* Compact phoenix in feeds and other small brand placements. */
+.home-short-avatar img,
+.short-feed-avatar img,
+img[data-coinblog-logo="icon"]{
+  content:url('/theme/assets/coin-blog-logo-icon.png?v=20260725-png')!important;
+  object-fit:contain!important;
+}
+
+/* Preloaders use the phoenix but remain compact. */
+.preloader-logo,
+.loader-logo,
+.loading-logo,
+.site-loader-logo,
+.cb-preloader-logo,
+.gm-preloader-logo{
+  content:url('/theme/assets/coin-blog-logo-icon.png?v=20260725-png')!important;
+  object-fit:contain!important;
+  width:96px!important;
+  height:96px!important;
+  max-width:96px!important;
+  max-height:96px!important;
+}
+
+@media(max-width:760px){
+  .nav-brand{min-width:154px!important;height:64px!important}
+  .nav-brand::before{width:146px;height:45px;flex-basis:146px}
+  .cb-foot-logo::before{width:164px;height:50px;flex-basis:164px}
+}
+@media(max-width:420px){
+  .nav-brand{min-width:134px!important}
+  .nav-brand::before{width:128px;height:40px;flex-basis:128px}
+  .preloader-logo,
+  .loader-logo,
+  .loading-logo,
+  .site-loader-logo,
+  .cb-preloader-logo,
+  .gm-preloader-logo{width:82px!important;height:82px!important;max-width:82px!important;max-height:82px!important}
+}
