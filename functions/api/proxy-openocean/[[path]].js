@@ -118,7 +118,7 @@ export async function onRequest(context) {
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const upstream = await fetch(`${BASE}/${path}${url.search}`, {
-      headers: { Accept: 'application/json', 'User-Agent': 'primus-stat.xyz' },
+      headers: { Accept: 'application/json', 'User-Agent': 'coinbloghq.com' },
       signal: controller.signal,
     });
     const text = await upstream.text();

@@ -121,7 +121,7 @@ export async function onRequest(context) {
     const headers = {
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'User-Agent': 'primus-stat.xyz',
+      'User-Agent': 'coinbloghq.com',
     };
     if (env?.ODOS_API_KEY) headers['x-api-key'] = env.ODOS_API_KEY;
 

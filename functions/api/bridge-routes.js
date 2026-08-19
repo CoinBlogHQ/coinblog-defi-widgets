@@ -69,7 +69,7 @@ export async function onRequest(context) {
       ...(toAddress ? { toAddress } : {}),
       ...(fromAmountForGas ? { fromAmountForGas } : {}),
       options: {
-        integrator: 'primus-analytics',
+        integrator: 'coinblog',
         slippage,
         order: 'CHEAPEST',
         maxPriceImpact: 0.05,

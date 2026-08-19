@@ -171,7 +171,7 @@ export async function onRequest(context) {
 
     const params = new URLSearchParams({
       fromChain: String(fromChainId), toChain: String(toChainId), fromToken: toLifiTokenAddress(fromToken), toToken: toLifiTokenAddress(toToken),
-      fromAmount, fromAddress, toAddress, slippage: String(slippage), integrator: 'primus-analytics',
+      fromAmount, fromAddress, toAddress, slippage: String(slippage), integrator: 'coinblog',
       maxPriceImpact: '0.05', allowDestinationCall: 'true', skipSimulation: 'false', order: 'CHEAPEST',
     });
     if (fromAmountForGas) params.set('fromAmountForGas', fromAmountForGas);
