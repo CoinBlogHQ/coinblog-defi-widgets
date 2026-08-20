@@ -1,666 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<!-- SEO -->
-<meta name="description" content="Compare executable cross-chain routes across current LI.FI-supported EVM networks, with route cost estimates, minimum output, and transfer status tracking.">
-<meta name="robots" content="index, follow">
-<meta name="author" content="Coin Blog">
-<link rel="canonical" href="https://coinbloghq.com/bridge">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Coin Blog">
-<meta property="og:title" content="Coin Blog Bridge - Cross-Chain Token Bridge">
-<meta property="og:description" content="Compare executable cross-chain routes across current LI.FI-supported EVM networks, with route cost estimates, minimum output, and transfer status tracking.">
-<meta property="og:image" content="https://coinbloghq.com/og/bridge.svg">
-<meta property="og:url" content="https://coinbloghq.com/bridge">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@coinblogHQ">
-<meta name="twitter:title" content="Coin Blog Bridge - Cross-Chain Token Bridge">
-<meta name="twitter:description" content="Compare executable cross-chain routes across current LI.FI-supported EVM networks, with route cost estimates, minimum output, and transfer status tracking.">
-<meta name="twitter:image" content="https://coinbloghq.com/og/bridge.svg">
-<meta name="google-site-verification" content="Bls42SX0zZ32u0nEJwXrCbu95draTurHG60C3csoNeU">
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Coin Bridge - Cross-Chain Token Bridge</title>
-<link rel="icon" type="image/png" href="/theme/assets/coin-blog-icon-512.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/theme/insights.css?v=slow-ticker-20260610">
-<link rel="stylesheet" href="/theme/readability.css?v=manrope-20260611">
-<script type="text/javascript">
-  (function(c,l,a,r,i,t,y){
-    if (!/^(www\.)?primus-stat\.xyz$/i.test(c.location.hostname)) return;
-    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-  })(window, document, "clarity", "script", "wzcyblly4d");
-</script>
-<style>
-/* ========================================================================
-   Coin Bridge - editorial shell, unified with homepage & dashboard
-   Preserves bridge JS hooks: .open .hidden .selected .active .err .ok
-   .best-badge .show .done .pending .light .dark
-   ======================================================================== */
-/* Palette, reset, fonts and shared shell come from /insights/insights.css + readability.css.
-   Only bridge-specific accent vars kept here. */
-:root{--coin-blue:#2479d4}
-body.light{--blue:var(--coin-blue)}
-body.dark{--blue:#7cc4ff}
-html,body{overflow-x:hidden}
-body{min-height:100vh;display:flex;flex-direction:column}
-h1,h2,h3,.display,.brand-name,.wpm-title,.modal-title{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 
-/* Background + nav shell now inherited from /insights/insights.css */
+const IGNORED_TOOLS = new Set(['integrator fee', 'fee collection', 'custom fee', 'integrator-fee', 'lifi', 'bridge']);
 
-/* ===== Main wrap ===== */
-#comet-canvas{display:none}
-.main{position:relative;z-index:1;width:100%;max-width:580px;margin:0 auto;padding:36px clamp(8px,3vw,20px) 60px;display:flex;flex-direction:column;align-items:center;flex:1 0 auto}
-
-/* ===== Bridge card ===== */
-.bridge-wrap{position:relative;width:100%}
-.bridge-glow{display:none}
-.bridge-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;position:relative}
-.light .bridge-card{box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 2px 6px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08)}
-.dark .bridge-card{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 4px 16px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.25)}
-.bridge-card-inner{padding:18px 16px 16px}
-
-/* ===== Chain selectors ===== */
-.chain-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px}
-.chain-box{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;transition:border-color .2s}
-.light .chain-box{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
-.dark .chain-box{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.2)}
-.chain-box:focus-within{border-color:rgba(245,181,27,.45)}
-.cbox-label,.ta-label,.rx-label,.fee-title,.routes-label,.slip-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
-.chain-sel-btn{font:inherit;color:inherit;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 12px;cursor:pointer;transition:all .15s;width:100%}
-.chain-sel-btn:hover{border-color:rgba(245,181,27,.55)}
-.chain-icon{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0}
-.chain-name-txt{font-size:13px;font-weight:700;color:var(--text)}
-.chain-caret,.tok-caret{margin-left:auto;color:var(--text3);font-size:10px}
-.chain-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:0 2px}
-.arrow-btn{width:38px;height:38px;border-radius:var(--radius-md);background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s}
-.light .arrow-btn{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.06)}
-.dark .arrow-btn{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 1px 4px rgba(0,0,0,.2)}
-.arrow-btn:hover{border-color:var(--coin-gold);transform:rotate(180deg);color:var(--coin-gold)}
-
-/* ===== Send / Receive boxes ===== */
-.token-amount-row,.receive-box{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;transition:border-color .2s;margin-bottom:4px}
-.light .token-amount-row,.light .receive-box{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
-.dark .token-amount-row,.dark .receive-box{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.2)}
-.token-amount-row:focus-within{border-color:rgba(245,181,27,.45)}
-.ta-row,.rx-row{display:flex;align-items:center;gap:10px}
-.tok-sel-btn,.rx-tok-btn{font:inherit;color:inherit;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 12px;cursor:pointer;transition:all .15s;flex-shrink:0;min-width:128px}
-.tok-sel-btn:hover,.rx-tok-btn:hover{border-color:rgba(245,181,27,.55)}
-.tok-icon{width:28px;height:28px;border-radius:50%;object-fit:cover}
-.tok-sym{font-size:14px;font-weight:800;color:var(--text)}
-.amt-input{flex:1;background:none;border:none;outline:none;font-family:var(--display);font-weight:400;font-size:30px;color:var(--text);text-align:right;width:100%;min-width:0;-moz-appearance:textfield;letter-spacing:-.6px}
-.amt-input::-webkit-outer-spin-button,.amt-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.amt-input::placeholder{color:var(--text3)}
-.ta-bottom,.rx-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-.usd-val,.rx-usd,.bal-txt,.bal-val{font-family:var(--mono);font-size:12px;color:var(--text2)}
-.bal-val{color:var(--text);font-weight:600}
-.bal-row{display:flex;align-items:center;gap:6px}
-.pct-row{display:flex;gap:5px;margin-top:8px}
-.pct-btn{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
-.pct-btn:hover{border-color:var(--coin-gold);color:var(--accent)}
-.rx-amount{flex:1;font-family:var(--display);font-weight:400;font-size:30px;color:var(--text);text-align:right;letter-spacing:-.6px}
-
-/* ===== Routes ===== */
-.routes-section{margin-top:10px}
-.routes-label{margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.routes-loading{display:flex;align-items:center;gap:10px;padding:16px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-md);font-family:var(--mono);font-size:12px;color:var(--text2)}
-.spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--coin-gold);animation:spin .8s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.route-card{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(110px,.8fr) auto;align-items:center;column-gap:12px;row-gap:8px;padding:12px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .2s;margin-bottom:6px;position:relative;overflow:hidden}
-.light .route-card{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
-.dark .route-card{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.15)}
-.route-card:hover{border-color:rgba(245,181,27,.45);transform:translateY(-1px)}
-.route-card.selected{border-color:var(--coin-gold);background:#fffaeb}
-.dark .route-card.selected{background:rgba(245,181,27,.08)}
-.route-card.best-badge::before{content:'BEST';position:absolute;top:-1px;left:12px;font-family:var(--mono);font-size:9px;font-weight:800;background:var(--coin-green);color:#fff;padding:2px 7px;border-radius:0 0 6px 6px;letter-spacing:.5px}
-.rc-bridge{display:flex;align-items:flex-start;gap:8px;min-width:0}
-.rc-bridge>div{min-width:0;flex:1}
-.rc-bridge-icon{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--surf3);flex-shrink:0}
-.rc-bridge-name{display:block;font-size:13px;font-weight:700;color:var(--text);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rc-mid{min-width:0;text-align:right}
-.rc-amount{font-size:16px;font-weight:800;color:var(--text);line-height:1.15;overflow-wrap:anywhere}
-.rc-usd{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap}
-.rc-right{text-align:right;min-width:96px;max-width:112px}
-.rc-time{font-family:var(--mono);font-size:11px;color:var(--blue);font-weight:700;white-space:nowrap}
-.rc-fee{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:3px;white-space:nowrap}
-.rc-tags{display:flex;gap:4px;margin-top:4px;justify-content:flex-end;flex-wrap:wrap}
-.rc-tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(245,181,27,.12);border:1px solid rgba(245,181,27,.28);color:var(--accent);white-space:nowrap}
-.rc-tag.tag-fast{background:rgba(36,121,212,.12);border-color:rgba(36,121,212,.28);color:var(--blue)}
-.rc-tag.tag-safe{background:rgba(18,166,106,.12);border-color:rgba(18,166,106,.28);color:var(--green)}
-@media(max-width:780px){.route-card{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'bridge right' 'mid right';align-items:start}.rc-bridge{grid-area:bridge}.rc-mid{grid-area:mid;padding-left:34px}.rc-right{grid-area:right;min-width:88px;max-width:96px}.rc-amount{font-size:15px}}
-@media(max-width:520px){.route-card{grid-template-columns:1fr;grid-template-areas:'bridge' 'mid' 'right'}.rc-mid,.rc-right{text-align:left;padding-left:34px}.rc-right{max-width:none;min-width:0}.rc-tags{justify-content:flex-start}}
-
-/* ===== Slippage ===== */
-.slip-row{display:flex;align-items:center;gap:6px;padding:10px 2px 4px;flex-wrap:wrap}
-.slip-btn{font-family:var(--mono);font-size:12px;padding:4px 11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
-.slip-btn.active{background:rgba(245,181,27,.12);border-color:rgba(245,181,27,.5);color:var(--accent)}
-.slip-custom{font-family:var(--mono);font-size:12px;width:68px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf2);color:var(--text);outline:none;text-align:center;-moz-appearance:textfield}
-.slip-custom::-webkit-outer-spin-button,.slip-custom::-webkit-inner-spin-button{-webkit-appearance:none}
-.slip-custom:focus{border-color:var(--coin-gold)}
-
-/* ===== Fee section ===== */
-.fee-section{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-top:10px}
-.light .fee-section{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.04)}
-.fee-row{display:flex;justify-content:space-between;margin-bottom:5px;gap:8px}
-.fee-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border)}
-.fee-key,.fee-val{font-family:var(--mono);font-size:12px;color:var(--text2)}
-.fee-val{color:var(--text);text-align:right}
-
-/* ===== Bridge button ===== */
-.bridge-btn{width:100%;padding:15px;border-radius:var(--radius-lg);border:none;font-family:var(--font);font-size:15px;font-weight:800;color:#fff;cursor:pointer;margin-top:12px;transition:all .2s;letter-spacing:-.2px}
-.bridge-btn.ready{background:linear-gradient(135deg,var(--coin-gold),var(--coin-orange))}
-.bridge-btn.ready:hover{opacity:.95;transform:translateY(-2px);box-shadow:0 10px 28px rgba(245,181,27,.32)}
-.bridge-btn.approve{background:linear-gradient(135deg,var(--coin-orange),var(--coin-red))}
-.bridge-btn:disabled{background:var(--surf3);color:var(--text3);cursor:not-allowed}
-.bridge-btn.loading{background:rgba(245,181,27,.25);cursor:not-allowed}
-.status-msg{text-align:center;font-family:var(--mono);font-size:12px;margin-top:10px;min-height:18px;color:var(--text2)}
-.status-msg.err{color:var(--red)}
-.status-msg.ok{color:var(--green)}
-.status-msg.warn{color:var(--yellow)}
-
-/* ===== Progress tracker ===== */
-.progress-wrap{margin-top:12px;padding:14px;background:rgba(245,181,27,.08);border:1px solid rgba(245,181,27,.28);border-radius:var(--radius-md);display:none}
-.progress-wrap.show{display:block}
-.prog-title{font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:10px;font-weight:700}
-.prog-steps{display:flex;align-items:center;gap:6px}
-.prog-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
-.prog-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s}
-.prog-dot.done{background:var(--coin-green);border-color:var(--coin-green);color:#fff}
-.prog-dot.active{background:rgba(245,181,27,.22);border-color:var(--coin-gold);animation:prog-pulse 1s infinite}
-.prog-dot.pending{background:transparent;border-color:var(--border)}
-.prog-dot.failed{background:rgba(239,68,68,.14);border-color:#ef4444;color:#ef4444}
-@keyframes prog-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,181,27,.45)}50%{box-shadow:0 0 0 6px rgba(245,181,27,0)}}
-.prog-label{font-family:var(--mono);font-size:11px;color:var(--text2);text-align:center}
-.prog-line{flex:1;height:2px;background:var(--border);border-radius:1px;margin-bottom:16px}
-.prog-line.done{background:var(--coin-green)}
-.tx-link{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:12px}
-.tx-link:hover{text-decoration:underline}
-
-/* ===== Wallet picker modal (.wpm-* hooks preserved for bridge JS) ===== */
-.wpm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,32,.62);backdrop-filter:blur(16px)}
-.wpm-overlay.hidden{display:none!important}
-.wpm-box{position:relative;background:var(--surf);border:1px solid rgba(245,181,27,.28);border-radius:22px;padding:32px 28px;width:420px;max-width:92vw;box-shadow:0 32px 64px rgba(0,0,0,.32);animation:wpmPop .35s cubic-bezier(.34,1.56,.64,1)}
-@keyframes wpmPop{from{opacity:0;transform:scale(.93) translateY(14px)}to{opacity:1;transform:none}}
-.wpm-logo{width:64px;height:64px;border-radius:16px;background:transparent;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;filter:drop-shadow(0 6px 14px rgba(245,181,27,.28))}
-.wpm-logo img{width:100%;height:100%;object-fit:contain;display:block}
-.wpm-title{font-size:24px;color:var(--text);text-align:center;margin-bottom:6px}
-.wpm-sub{font-family:var(--mono);font-size:13px;color:var(--text2);text-align:center;margin-bottom:22px}
-.wpm-status{font-family:var(--mono);font-size:12px;text-align:center;min-height:18px;margin-bottom:10px;color:var(--text2)}
-.wpm-status.err{color:var(--red)}
-.wpm-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-.wpm-wallet{display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .15s;width:100%;text-align:left;font-family:var(--font)}
-.wpm-wallet:hover{border-color:rgba(245,181,27,.5);background:#fffaeb;transform:translateY(-1px)}
-.dark .wpm-wallet:hover{background:rgba(245,181,27,.08)}
-.wpm-wicon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:18px;padding:4px}
-.wpm-wname{font-size:14px;font-weight:800;color:var(--text)}
-.wpm-wdesc{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
-.wpm-badge{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(245,181,27,.16);color:#a05f00;white-space:nowrap}
-.dark .wpm-badge{color:var(--coin-gold)}
-.wpm-note{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;line-height:1.6}
-.wpm-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:14px;font-weight:700}
-.wpm-close:hover{color:var(--text);border-color:var(--coin-gold);background:rgba(245,181,27,.08)}
-
-/* ===== Chain / Token selector modals ===== */
-.modal-overlay{position:fixed;inset:0;background:rgba(17,24,32,.62);backdrop-filter:blur(14px);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
-.modal-overlay.open{display:flex;animation:mfadeIn .2s ease}
-@keyframes mfadeIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surf);border:1px solid var(--border);border-radius:22px;padding:24px 22px 26px;width:100%;max-width:460px;max-height:78vh;display:flex;flex-direction:column;position:relative;animation:modalPop .22s ease}
-.dark .modal{box-shadow:0 24px 64px rgba(0,0,0,.5)}
-.light .modal{box-shadow:0 24px 64px rgba(0,0,0,.18)}
-@keyframes modalPop{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.modal-title{font-size:20px;color:var(--text)}
-.modal-subtitle{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
-.modal-close{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
-.modal-close:hover{color:var(--text)}
-.modal-search{width:100%;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surf2);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;margin-bottom:12px}
-.modal-search::placeholder{color:var(--text3)}
-.modal-search:focus{border-color:var(--coin-gold)}
-.chain-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;scrollbar-width:thin}
-.chain-grid-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .15s}
-.chain-grid-item:hover{border-color:rgba(245,181,27,.5)}
-.chain-grid-item.active{background:rgba(245,181,27,.1);border-color:var(--coin-gold)}
-.cgi-icon{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0}
-.cgi-name{font-size:13px;font-weight:700;color:var(--text)}
-.cgi-sym{font-family:var(--mono);font-size:11px;color:var(--text2)}
-.tok-list{overflow-y:auto;flex:1;scrollbar-width:thin}
-.tok-item{display:flex;align-items:center;gap:13px;padding:10px;border-radius:var(--radius-md);cursor:pointer;transition:background .15s}
-.tok-item:hover{background:var(--surf2)}
-.tok-item-icon{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--surf3)}
-.tok-info{flex:1}
-.tok-sym2{font-size:14px;font-weight:800;color:var(--text)}
-.tok-name2{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
-.tok-bal2{font-family:var(--mono);font-size:12px;color:var(--text2);text-align:right}
-.tok-bal2.hasbal{color:var(--green);font-weight:700}
-
-/* ===== History ===== */
-.hist-wrap{width:100%;margin-top:14px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative;z-index:3}
-.light .hist-wrap{box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 2px 6px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.05)}
-.dark .hist-wrap{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.2)}
-.hist-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;transition:background .15s;user-select:none}
-.hist-header:hover{background:var(--surf2)}
-.hist-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);flex:1}
-.hist-meta{font-family:var(--mono);font-size:11px;color:var(--text2)}
-.hist-caret{color:var(--text3);font-size:12px;transition:transform .2s}
-.hist-caret.open{transform:rotate(180deg)}
-.hist-body{border-top:1px solid var(--border)}
-.hist-empty{padding:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text2)}
-.hist-list{max-height:280px;overflow-y:auto;scrollbar-width:thin}
-.hist-item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .15s}
-.hist-item:hover{background:var(--surf2)}
-.hist-item:last-child{border-bottom:none}
-.hi-pair{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
-.hi-detail{font-family:var(--mono);font-size:11px;color:var(--text2)}
-.hi-right{text-align:right}
-.hi-status{font-family:var(--mono);font-size:11px;margin-bottom:3px}
-.hi-status.ok{color:var(--green)}
-.hi-status.pending{color:var(--yellow)}
-.hi-status.err{color:var(--red)}
-.hi-link{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none}
-.hi-link:hover{text-decoration:underline}
-.hi-time{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px}
-.hist-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border)}
-.hist-clear-btn{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:7px;border:1px solid rgba(190,30,45,.3);background:transparent;color:var(--red);cursor:pointer;transition:all .15s}
-.hist-clear-btn:hover{background:rgba(190,30,45,.1)}
-.hist-note{font-family:var(--mono);font-size:10px;color:var(--text3)}
-
-/* ===== SEO section ===== */
-.seo-section{width:100%;margin-top:24px;padding:36px 0 48px;border-top:1px solid var(--border);position:relative;z-index:1;content-visibility:auto;contain-intrinsic-size:1px 520px}
-.seo-inner{max-width:960px;margin:0 auto;padding:0 20px}
-.seo-h1{font-family:var(--display);font-size:clamp(22px,3vw,30px);color:var(--text);margin-bottom:24px;letter-spacing:-.4px}
-.seo-cols{display:grid;grid-template-columns:1fr 1fr;gap:28px}
-.seo-col{}
-.seo-h2{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
-.seo-h3{font-family:var(--font);font-size:14px;font-weight:800;color:var(--text);margin:14px 0 4px;letter-spacing:-.1px}
-.seo-p{font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--text2);margin-bottom:0}
-@media(max-width:640px){.seo-cols{grid-template-columns:1fr;gap:18px}}
-
-/* ===== Mobile (bridge widgets) ===== */
-@media(max-width:760px){
-  .main{padding:24px 8px 36px}
-  .bridge-card-inner{padding:14px 12px 12px}
-  .chain-row{flex-direction:column}
-  .chain-arrow{flex-direction:row;transform:rotate(90deg)}
-  .ta-row,.rx-row{flex-direction:column;align-items:stretch}
-  .tok-sel-btn,.rx-tok-btn{width:100%;min-width:0}
-  .amt-input,.rx-amount{text-align:left;font-size:36px}
-  .ta-bottom,.rx-bottom{flex-direction:column;align-items:flex-start;gap:8px}
-  .modal{max-width:100%;max-height:85vh;border-radius:18px;padding:18px 16px}
-  .wpm-box{padding:24px 18px;width:min(420px,94vw)}
-  .chain-grid{grid-template-columns:1fr}
-}
-@media(max-width:480px){
-  .seo-cols{grid-template-columns:1fr}
-}
-
-.advanced-transfer{margin:10px 0 14px;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025)}
-.advanced-transfer label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
-.recipient-input{width:100%;box-sizing:border-box;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:10px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;outline:none}
-.recipient-input:focus{border-color:var(--yellow)}
-.gas-toggle{display:flex!important;align-items:center;gap:9px;margin:10px 0 0!important;text-transform:none!important;letter-spacing:0!important;font-size:12px!important;cursor:pointer}
-.gas-toggle input{accent-color:var(--yellow)}
-.route-path{font-size:10px;color:var(--muted);margin-top:4px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.route-warning{margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);font-size:11px;color:#fbbf24}
-.hi-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:5px}
-.hi-check{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:7px;padding:4px 7px;font-size:10px;cursor:pointer}
-.hi-check:hover{color:var(--text);border-color:var(--yellow)}
-.token-risk{font-size:10px;color:#fbbf24;margin-top:3px}
-@media(max-width:620px){.advanced-transfer{padding:10px}.route-path{max-width:170px}}
-</style>
-
-<style id="coin-shell-fns">
-/* Functional wallet controls unique to the utility pages.
-   Shared nav, footer, palette and fonts come from /insights/insights.css. */
-.nav-right{position:relative;z-index:1001}
-.nav .conn-btn,.nav .wallet-pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:700 12.5px/1 'JetBrains Mono','Manrope',monospace;cursor:pointer;white-space:nowrap;position:relative;transition:border-color .15s,background .15s}
-.nav .conn-btn:hover,.nav .wallet-pill:hover{border-color:#f5b51b;background:rgba(245,181,27,.12)}
-.nav .wallet-pill .wdot{width:7px;height:7px;border-radius:50%;background:#12a66a;box-shadow:0 0 6px #12a66a;flex:0 0 7px}
-.nav .wallet-pill .wpill-caret{opacity:.6;font-size:9px;margin-left:2px}
-.w-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:184px;padding:6px;border-radius:12px;background:#fff;border:1px solid rgba(15,23,42,.12);box-shadow:0 18px 44px rgba(2,6,23,.24);display:none;z-index:1300}
-.dark .w-menu{background:#1a2330;border-color:rgba(255,255,255,.1);box-shadow:0 18px 44px rgba(0,0,0,.5)}
-.w-menu.open{display:block}
-.w-menu .wm-item{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#101828;font-family:'Manrope',sans-serif;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer}
-.dark .w-menu .wm-item{color:#f3eee2}
-.w-menu .wm-item:hover{background:#fff3c4;color:#101820}
-.dark .w-menu .wm-item:hover{background:rgba(245,181,27,.12);color:#f5b51b}
-.w-menu .wm-item.wm-red{color:#be1e2d}
-.w-menu .wm-item.wm-red:hover{background:rgba(190,30,45,.12)}
-.w-menu .wm-sep{border:0;border-top:1px solid rgba(15,23,42,.08);margin:4px 0}
-.dark .w-menu .wm-sep{border-top-color:rgba(255,255,255,.08)}
-@media(max-width:760px){.nav .wallet-pill{max-width:150px;overflow:hidden;text-overflow:ellipsis} .nav .wallet-pill #w-addr-disp{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-</style>
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "Bridge — Coin Blog",
-  "url": "https://coinbloghq.com/bridge",
-  "description": "Compare executable cross-chain routes across LI.FI-supported EVM networks, with route costs and transfer status tracking.",
-  "isPartOf": {
-    "@type": "WebSite",
-    "url": "https://coinbloghq.com",
-    "name": "Coin Blog"
-  },
-  "breadcrumb": {
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://coinbloghq.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Bridge",
-        "item": "https://coinbloghq.com/bridge"
-      }
-    ]
+function getPrimaryBridgeTool(route){
+  if(route.isSwap) {
+    return { name: route.tool || '0x Protocol', logo: route.steps?.[0]?.toolDetails?.logoURI || '', toolKey: 'swap' };
   }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Which bridges does Coin Blog aggregate?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Coin Blog Bridge uses the bridges and exchanges currently returned by LI.FI for the selected network, token, amount, sender, and recipient."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How long does a bridge transfer take?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Transfer time varies by route, source-chain confirmations, destination network conditions, and the selected bridge. The route estimate is shown before confirmation and status remains available in local history."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is there a fee for using Coin Blog Bridge?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Coin Blog adds no interface fee. LI.FI route estimates show route gas and protocol or exchange fees. A separate token approval transaction may require additional source-network gas."
+  for(const step of route?.steps||[]){
+    const included=Array.isArray(step?.includedSteps)&&step.includedSteps.length?step.includedSteps:[step];
+    for(const child of included){
+      const toolKey=String(child?.tool||'').toLowerCase();
+      const toolName=String(child?.toolDetails?.name||child?.tool||'').trim();
+      if(toolName && !IGNORED_TOOLS.has(toolName.toLowerCase()) && !IGNORED_TOOLS.has(toolKey)){
+        return {
+          name: toolName,
+          logo: String(child?.toolDetails?.logoURI||''),
+          toolKey: toolKey
+        };
       }
     }
-  ]
+  }
+  return { name: 'Bridge', logo: '', toolKey: 'bridge' };
 }
-</script>
-</head>
-<body class="light">
-<div class="bg-wrap" aria-hidden="true"><div class="bg-grid"></div><div class="bg-orb blue"></div><div class="bg-orb pink"></div><div class="bg-orb green"></div></div>
-<nav class="nav">
-  <a class="nav-brand" href="/">
-    <img class="brand-logo-icon" src="/theme/assets/coin-blog-logo-icon.png" alt="Coin Blog" width="199" height="192">
-    <span class="brand-wordmark"><span class="brand-coin">COIN</span> <span class="brand-section">BLOG</span></span>
-  </a>
-  <div class="nav-links">
-    <div class="nl-wrap">
-      <button class="nl" onclick="toggleAnalyticsDD(event)">Analytics <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:3px;vertical-align:middle;opacity:.65"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <div class="analytics-dd" id="analytics-dd">
-        <a class="dd-item" href="/base"><img src="https://icons.llamao.fi/icons/chains/rsz_base.jpg" alt="Base" loading="lazy" decoding="async" onerror="this.style.display='none'">Base</a>
-        <div class="dd-sep"></div>
-        <a class="dd-item" href="/unichain"><img src="https://icons.llamao.fi/icons/chains/rsz_unichain.jpg" alt="Unichain" loading="lazy" decoding="async" onerror="this.style.display='none'">Unichain</a>
-        <div class="dd-sep"></div>
-        <a class="dd-item" href="/robinhood-mainnet/"><img src="/theme/assets/robinhood-chain-icon.svg" alt="Robinhood" loading="lazy" decoding="async" onerror="this.style.display='none'">Robinhood</a>
-      </div>
-    </div>
-    <div class="nl-wrap">
-      <button class="nl on" onclick="toggleUtilitiesDD(event)">Utilities <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:3px;vertical-align:middle;opacity:.65"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <div class="analytics-dd utilities-dd" id="utilities-dd">
-        <a class="dd-item" href="/dashboard">Portfolio</a>
-        <div class="dd-sep"></div>
-        <a class="dd-item" href="/bridge">Bridge</a>
-        <div class="dd-sep"></div>
-        <a class="dd-item" href="/swap">Swap</a>
-        <div class="dd-sep"></div>
-        <a class="dd-item" href="/rwa">RWA</a>
-      </div>
-    </div>
-  </div>
-  <div class="nav-right" id="top-right">
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
-      <svg id="theme-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
-    </button>
-    <a class="social-btn" href="https://x.com/coinblogHQ" target="_blank" rel="noopener noreferrer" aria-label="X">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.7 10.6 21.1 2h-1.8l-6.4 7.4L7.8 2H2l7.8 11.3L2 22h1.8l6.8-7.9 5.5 7.9H22l-8.3-11.4Zm-2.4 2.8-.8-1.1L4.2 3.3h2.7l5 7.1.8 1.1 6.6 9.3h-2.7l-5.3-7.4Z"/></svg>
-    </a>
-    <a class="social-btn" href="https://t.me/CoinssBlog" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.8 4.2 18.5 20c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5.9 13.5 1 12c-1.1-.3-1.1-1.1.2-1.6L20.4 3c.9-.3 1.7.2 1.4 1.2Z"/></svg>
-    </a>
-    <button class="conn-btn" id="conn-btn" type="button" onclick="connectWallet()">Connect Wallet</button>
-    <div class="wallet-pill" id="wallet-pill" style="display:none" onclick="toggleWMenu()">
-      <span class="wdot"></span>
-      <span id="w-addr-disp">0x0…0000</span>
-      <span class="wpill-caret">▾</span>
-      <div class="w-menu" id="w-menu" onclick="event.stopPropagation()">
-        <button class="wm-item" onclick="wCopy()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Address</button>
-        <button class="wm-item" onclick="wExplorer()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Explorer</button>
-        <hr class="wm-sep">
-        <button class="wm-item wm-red" onclick="wDisconnect()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Disconnect</button>
-      </div>
-    </div>
-  </div>
-</nav>
-<!-- Wallet picker modal (wpm-* IDs preserved for bridge JS) -->
-<div id="wpm-overlay" class="wpm-overlay hidden" role="dialog" aria-modal="true" aria-label="Connect wallet" onclick="closeWalletModal(event)">
-  <div class="wpm-box">
-    <button class="wpm-close" type="button" onclick="closeWalletModal()">✕</button>
-    <div class="wpm-logo">
-      <img src="/theme/assets/coin-blog-logo-icon.png" alt="Coin Blog" width="64" height="64">
-    </div>
-    <div class="wpm-title">Connect Wallet</div>
-    <div class="wpm-sub">Choose your wallet to continue</div>
-    <div class="wpm-status" id="wpm-status"></div>
-    <div class="wpm-list" id="wpm-list"></div>
-    <div class="wpm-note">Coin Blog never asks for your seed phrase.<br>Wallet confirmations are shown only when required.</div>
-  </div>
-</div>
-<!-- Main -->
-<div class="main">
-  <div class="bridge-wrap">
-    <div class="bridge-glow"></div>
-    <div class="bridge-card">
-      <div class="bridge-card-inner">
 
-        <!-- Chain selectors -->
-        <div class="chain-row">
-          <div class="chain-box">
-            <div class="cbox-label">From Network</div>
-            <button type="button" class="chain-sel-btn" onclick="openChainModal('from')" aria-label="Choose source network">
-              <div id="from-chain-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
-              <span id="from-chain-name" class="chain-name-txt">Ethereum</span>
-              <span class="chain-caret">▾</span>
-            </button>
-          </div>
-          <div class="chain-arrow">
-            <button type="button" class="arrow-btn" onclick="flipChains()" title="Flip chains" aria-label="Flip source and destination networks">⇄</button>
-          </div>
-          <div class="chain-box">
-            <div class="cbox-label">To Network</div>
-            <button type="button" class="chain-sel-btn" onclick="openChainModal('to')" aria-label="Choose destination network">
-              <div id="to-chain-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
-              <span id="to-chain-name" class="chain-name-txt">Arbitrum</span>
-              <span class="chain-caret">▾</span>
-            </button>
-          </div>
-        </div>
 
-        <!-- You send -->
-        <div class="token-amount-row">
-          <div class="ta-label">You Send</div>
-          <div class="ta-row">
-            <button type="button" class="tok-sel-btn" onclick="openTokenModal('from')" aria-label="Choose token to send">
-              <div id="from-tok-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
-              <span class="tok-sym" id="from-tok-sym">ETH</span>
-              <span class="tok-caret">▾</span>
-            </button>
-            <input class="amt-input" id="send-amt" type="text" inputmode="decimal" placeholder="0.0" oninput="onAmtInput()" autocomplete="off" aria-label="Amount to bridge">
-          </div>
-          <div class="ta-bottom">
-            <span class="usd-val" id="send-usd">≈ $0.00</span>
-            <div class="bal-row">
-              <span class="bal-txt">Balance:</span>
-              <span class="bal-val" id="send-bal">—</span>
-            </div>
-          </div>
-          <div class="pct-row">
-            <button class="pct-btn" onclick="setPct(25)">25%</button>
-            <button class="pct-btn" onclick="setPct(50)">50%</button>
-            <button class="pct-btn" onclick="setPct(75)">75%</button>
-            <button class="pct-btn" onclick="setPct(100)">MAX</button>
-          </div>
-        </div>
+// ═══════════════════════════════════════════
+// SWAP AGGREGATORS SUPPORT
+// ═══════════════════════════════════════════
+const OO_CHAIN = { 1:1,10:10,56:56,137:137,8453:8453,42161:42161,43114:43114,59144:59144,534352:534352,130:130,146:146,80094:80094,5000:5000,81457:81457,34443:34443,999:'hyperevm',143:'monad',9745:'plasma',4663:'4663',324:'zksync',1329:'sei',1776:'injective' };
+const PARASWAP_CHAIN = new Set([1,10,56,130,137,146,8453,42161,43114,9745]);
+const ooGasCache = new Map();
 
-        <!-- You receive -->
-        <div class="receive-box">
-          <div class="rx-label">You Receive (estimated)</div>
-          <div class="rx-row">
-            <button type="button" class="rx-tok-btn" onclick="openTokenModal('to')" aria-label="Choose token to receive">
-              <div id="to-tok-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
-              <span class="tok-sym" id="to-tok-sym">ETH</span>
-              <span class="tok-caret">▾</span>
-            </button>
-            <div class="rx-amount" id="receive-amt">0.0</div>
-          </div>
-          <div class="rx-bottom">
-            <span class="rx-usd" id="receive-usd">≈ $0.00</span>
-            <span class="rx-usd" id="receive-bal-wrap" style="display:none;">Balance: <span id="receive-bal">—</span></span>
-          </div>
-        </div>
+function openOceanTokenAddress(tok) {
+  if(!tok || !tok.addr) return '';
+  return tok.addr === NATIVE ? '0x0000000000000000000000000000000000000000' : tok.addr;
+}
 
-        <!-- Slippage -->
-        <div class="slip-row">
-          <span class="slip-lbl">Slippage:</span>
-          <button class="slip-btn active" onclick="setSlip(0.5,this)">0.5%</button>
-          <button class="slip-btn" onclick="setSlip(1,this)">1%</button>
-          <button class="slip-btn" onclick="setSlip(3,this)">3%</button>
-          <input class="slip-custom" id="slip-custom" type="number" placeholder="Custom" min="0.01" max="5" step="0.1"
-                 onchange="setSlipCustom(this.value)">
-        </div>
+function parseOpenOceanGasPriceWei(payload) {
+  const candidates = [
+    payload?.data?.standard?.legacyGasPrice,
+    payload?.data?.standard?.maxFeePerGas,
+    payload?.data?.fast?.legacyGasPrice,
+    payload?.data?.fast?.maxFeePerGas,
+    payload?.data?.instant?.legacyGasPrice,
+    payload?.data?.instant?.maxFeePerGas,
+  ];
+  for (const candidate of candidates) {
+    if (candidate == null) continue;
+    const clean = String(candidate).trim();
+    if (/^\d+$/.test(clean) && clean !== '0') return clean;
+  }
+  return null;
+}
 
-        <div class="advanced-transfer">
-          <label for="recipient-address">Destination recipient (optional)</label>
-          <input id="recipient-address" class="recipient-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Same as connected wallet" oninput="onRecipientChange()">
-          <label class="gas-toggle"><input id="destination-gas" type="checkbox" onchange="scheduleQuote()"> Convert 1% of the transfer into destination gas, when supported</label>
-        </div>
+async function fetchOpenOceanGasPriceWei(ooChain) {
+  const cached = ooGasCache.get(ooChain);
+  if (cached && cached.expires > Date.now()) return cached.value;
+  let value = '3000000000';
+  try {
+    const response = await fetch(`/api/proxy-openocean/v4/${ooChain}/gasPrice`, { signal: AbortSignal.timeout(8000) });
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && Number(payload.code) === 200) {
+      const parsed = parseOpenOceanGasPriceWei(payload);
+      if (parsed) value = parsed;
+    }
+  } catch {}
+  ooGasCache.set(ooChain, { value, expires: Date.now() + 15000 });
+  return value;
+}
 
-        <!-- Routes list -->
-        <div class="routes-section" id="routes-section" style="display:none;">
-          <div class="routes-label">
-            <span>Available Routes</span>
-            <span id="routes-count" style="color:var(--blue);"></span>
-          </div>
-          <div id="routes-list"></div>
-        </div>
+async function fetch0xQuote(sellAmt, slipBps) {
+  const params = new URLSearchParams({ chainId:String(fromChainId), sellToken:fromTok.addr, buyToken:toTok.addr, sellAmount:sellAmt, slippageBps:String(slipBps) });
+  if(wallet) params.set('taker', wallet);
+  const response = await fetch('/api/swap-quote?' + params.toString(), { signal: AbortSignal.timeout(12000) });
+  const q = await response.json();
+  if(!response.ok || q.code || q.reason || q.validationErrors || q.error) {
+    throw new Error(q.reason || q.error || q.validationErrors?.[0]?.reason || 'No route');
+  }
+  if(q.liquidityAvailable === false) throw new Error('0x reported no available liquidity');
+  const allowanceTarget = q?.issues?.allowance?.spender || q?.allowanceTarget || null;
+  return {
+    ...q,
+    _agg:'0x Protocol',
+    _logo:'https://images.ctfassets.net/4n51k5s048w0/4X80u569iI2yMY4Y60OaWc/fa67746536551b9e26ff8903c733364f/0x-logo.png',
+    buyAmount: q.buyAmount,
+    minBuyAmount: q.minBuyAmount || q.buyAmount,
+    transaction: q.transaction,
+    allowanceTarget,
+  };
+}
 
-        <!-- Fee breakdown (shown when route selected) -->
-        <div class="fee-section" id="fee-section" style="display:none;">
-          <div class="fee-title">Fee Breakdown</div>
-          <div class="fee-row"><span class="fee-key">Route Gas</span><span class="fee-val" id="fee-src-gas">—</span></div>
-          <div class="fee-row"><span class="fee-key">Bridge / DEX Fees</span><span class="fee-val" id="fee-bridge">—</span></div>
-          <div class="fee-row"><span class="fee-key">Approval Gas</span><span class="fee-val" id="fee-approval">Not required</span></div>
-          <div class="fee-row"><span class="fee-key">Est. Time</span><span class="fee-val" id="fee-time" style="color:var(--blue);">—</span></div>
-          <div class="fee-row"><span class="fee-key">Coin Blog Fee</span><span class="fee-val" style="color:var(--green);font-weight:700;">0% 🎉</span></div>
-          <div class="fee-row" style="margin-bottom:0;"><span class="fee-key" style="font-weight:700;">You Receive (min)</span><span class="fee-val" id="fee-min-out" style="color:var(--yellow);font-weight:700;">—</span></div>
-        </div>
+async function fetchParaswapQuote(sellAmt, slipBps) {
+  if(!PARASWAP_CHAIN.has(fromChainId)) throw new Error('Chain not supported');
+  const params = new URLSearchParams({
+    chainId:String(fromChainId), srcToken:fromTok.addr, destToken:toTok.addr,
+    amount:sellAmt, srcDecimals:String(fromTok.dec), destDecimals:String(toTok.dec),
+    slippageBps:String(slipBps),
+  });
+  if(wallet) params.set('taker', wallet);
+  const response = await fetch('/api/paraswap-quote?' + params.toString(), { signal:AbortSignal.timeout(15000) });
+  const q = await response.json();
+  if(!response.ok || q.error) throw new Error(q.error || 'Paraswap route unavailable');
+  return {
+    ...q,
+    _agg:'ParaSwap',
+    _logo:'https://app.paraswap.xyz/logo.svg',
+    buyAmount: q.buyAmount,
+    minBuyAmount: q.minBuyAmount || q.buyAmount,
+    transaction: q.transaction,
+    allowanceTarget: q.allowanceTarget || q.tokenTransferProxy,
+  };
+}
 
-        <!-- Bridge button -->
-        <button class="bridge-btn" id="bridge-btn" disabled onclick="doBridge()">Select Route</button>
-        <div class="status-msg" id="status-msg"></div>
+async function fetchOpenOceanQuote(sellAmt, slipBps) {
+  const ooChain = OO_CHAIN[fromChainId];
+  if(!ooChain) throw new Error('Chain not supported');
+  const gasPriceWei = await fetchOpenOceanGasPriceWei(ooChain);
+  const params = new URLSearchParams({
+    inTokenAddress:openOceanTokenAddress(fromTok),
+    outTokenAddress:openOceanTokenAddress(toTok),
+    amountDecimals:sellAmt,
+    gasPriceDecimals:gasPriceWei,
+    slippage:String(Math.max(0.05, slipBps / 100)),
+  });
+  if(wallet) params.set('account', wallet);
+  const response = await fetch(`/api/proxy-openocean/v4/${ooChain}/swap?${params.toString()}`, { signal:AbortSignal.timeout(10000) });
+  if(!response.ok) throw new Error('OpenOcean route unavailable');
+  const payload = await response.json().catch(() => ({}));
+  if(Number(payload?.code) !== 200 || !payload?.data) throw new Error(payload?.error || payload?.message || 'OpenOcean route unavailable');
+  const data = payload.data;
+  const rawOut = String(data.outAmount || '0');
+  const transaction = data.to && data.data ? {
+    to:data.to,
+    data:data.data,
+    value:data.value || '0',
+    gas:data.estimatedGas,
+    gasPrice:data.gasPrice || gasPriceWei,
+  } : null;
+  let allowanceTarget = data.allowanceTarget || data.approveContract || data.exchange || null;
+  return {
+    _agg:'OpenOcean',
+    _logo:'https://openocean.finance/favicon.ico',
+    buyAmount: rawOut,
+    minBuyAmount: String(data.minOutAmount || rawOut),
+    transaction,
+    allowanceTarget,
+  };
+}
 
-        <!-- Progress tracker -->
-        <div class="progress-wrap" id="progress-wrap">
-          <div class="prog-title">🔗 Bridge in progress…</div>
-          <div class="prog-steps">
-            <div class="prog-step">
-              <div class="prog-dot" id="prog-0">✓</div>
-              <div class="prog-label">Approved</div>
-            </div>
-            <div class="prog-line" id="prog-line-0"></div>
-            <div class="prog-step">
-              <div class="prog-dot" id="prog-1">⏳</div>
-              <div class="prog-label">Sent</div>
-            </div>
-            <div class="prog-line" id="prog-line-1"></div>
-            <div class="prog-step">
-              <div class="prog-dot" id="prog-2">⏳</div>
-              <div class="prog-label">Bridging</div>
-            </div>
-            <div class="prog-line" id="prog-line-2"></div>
-            <div class="prog-step">
-              <div class="prog-dot" id="prog-3">⏳</div>
-              <div class="prog-label">Done</div>
-            </div>
-          </div>
-          <div id="prog-tx-link" style="margin-top:10px;text-align:center;"></div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Transaction History -->
-  <div class="hist-wrap">
-    <div class="hist-header" onclick="toggleHist()">
-      <div class="hist-title"><span>🌉</span><span>Bridge History</span></div>
-      <span class="hist-meta" id="hist-meta">0 transactions</span>
-      <span class="hist-caret" id="hist-caret">▾</span>
-    </div>
-    <div class="hist-body" id="hist-body" style="display:none;">
-      <div class="hist-list" id="hist-list">
-        <div class="hist-empty">No bridge transactions yet</div>
-      </div>
-      <div class="hist-footer">
-        <button class="hist-clear-btn" onclick="clearHistory()">Clear History</button>
-        <span class="hist-note">Stored locally in this browser</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Chain selector modal -->
-<div class="modal-overlay" id="chain-modal-overlay" role="dialog" aria-modal="true" aria-label="Choose network" onclick="closeChainModal(event)">
-  <div class="modal" id="chain-modal">
-    <div class="modal-hdr">
-      <div>
-        <div class="modal-title" id="chain-modal-title">Select Network</div>
-        <div class="modal-subtitle" id="chain-modal-sub">Choose source network</div>
-      </div>
-      <button class="modal-close" onclick="closeChainModal()">✕</button>
-    </div>
-    <input class="modal-search" id="chain-search" placeholder="Search network…" oninput="filterChains()">
-    <div class="chain-grid" id="chain-grid"></div>
-  </div>
-</div>
-
-<!-- Token selector modal -->
-<div class="modal-overlay" id="tok-modal-overlay" role="dialog" aria-modal="true" aria-label="Choose token" onclick="closeTokModal(event)">
-  <div class="modal" id="tok-modal">
-    <div class="modal-hdr">
-      <div>
-        <div class="modal-title" id="tok-modal-title">Select Token</div>
-        <div class="modal-subtitle" id="tok-modal-sub">Loading tokens…</div>
-      </div>
-      <button class="modal-close" onclick="closeTokModal()">✕</button>
-    </div>
-    <input class="modal-search" id="tok-search" placeholder="Search name or paste address…" oninput="filterTokens()">
-    <div class="tok-list" id="tok-list"></div>
-  </div>
-</div>
-
-<script src="/vendor/walletconnect-ethereum-provider.umd.js?v=20260331-1"></script>
-<script>
 'use strict';
 // ═══════════════════════════════════════════
 // SECURITY HELPERS
@@ -846,6 +332,32 @@ let toChainId   = 42161;
 let fromTok = null;
 let toTok   = null;
 let slippage = 0.5;
+
+let autoRefreshTimer = null;
+let quoteTimeLeft = 30;
+
+function startQuoteTimer() {
+  clearInterval(autoRefreshTimer);
+  quoteTimeLeft = 30;
+  const ui = document.getElementById('quote-timer-ui');
+  if(ui) ui.textContent = `(Refreshes in ${quoteTimeLeft}s)`;
+  autoRefreshTimer = setInterval(() => {
+    quoteTimeLeft--;
+    if(ui) ui.textContent = `(Refreshes in ${quoteTimeLeft}s)`;
+    if (quoteTimeLeft <= 0) {
+      clearInterval(autoRefreshTimer);
+      if(ui) ui.textContent = 'Refreshing...';
+      fetchRoutes();
+    }
+  }, 1000);
+}
+
+function clearQuoteTimer() {
+  clearInterval(autoRefreshTimer);
+  const ui = document.getElementById('quote-timer-ui');
+  if(ui) ui.textContent = '';
+}
+
 let routes = [];
 let selectedRouteIdx = 0;
 let quoteTimer = null;
@@ -1236,7 +748,7 @@ function resumePendingBridgeHistory(){
 // ══════════════�����════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
-async function init(){
+async function init(){ loadCustomTokens();
   await loadSupportedBridgeChains();
   for(const net of NETWORKS) mergeBridgeRecentTokens(net.id);
   // Detect wallet chain
@@ -1278,9 +790,109 @@ function updateChainUI(){
   document.getElementById('to-chain-icon-wrap').innerHTML=chainIconHTML(to,28);
   document.getElementById('from-chain-name').textContent=from.name;
   document.getElementById('to-chain-name').textContent=to.name;
+  
+  const advBox = document.getElementById('advanced-transfer-box');
+  if (advBox) {
+    advBox.style.display = (fromChainId === toChainId) ? 'none' : 'block';
+  }
+  
+  const histTitle = document.getElementById('history-title-text');
+  if (histTitle) {
+    histTitle.textContent = (fromChainId === toChainId) ? 'Swap History' : 'Bridge History';
+  }
 }
+
+let _currentSecCache = {};
+async function checkTokenSecurity(token) {
+    const badge = document.getElementById('sell-sec-badge');
+    const warnBox = document.getElementById('sec-warning-box');
+    const btn = document.getElementById('submit-btn');
+    if (!badge || !warnBox) return;
+    
+    badge.className = 'sec-badge';
+    badge.innerHTML = '';
+    warnBox.style.display = 'none';
+    
+    const addr = (token.addr || '').toLowerCase();
+    const chainId = fromChainId;
+    if (!token || !addr || addr === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return;
+    
+    const key = chainId + '-' + addr;
+    if (_currentSecCache[key] === undefined) {
+      try {
+        const res = await fetch(`https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${addr}`);
+        if (res.ok) {
+          const raw = await res.json();
+          const info = raw?.result?.[addr];
+          if (info) {
+             _currentSecCache[key] = {
+               is_honeypot: info.is_honeypot === '1',
+               cannot_sell: info.cannot_sell === '1' || info.is_honeypot === '1',
+               buy_tax: info.buy_tax ? parseFloat(info.buy_tax) * 100 : 0,
+               sell_tax: info.sell_tax ? parseFloat(info.sell_tax) * 100 : 0,
+               is_mintable: info.is_mintable === '1',
+               is_proxy: info.is_proxy === '1',
+               transfer_pausable: info.transfer_pausable === '1',
+               trust_list: info.trust_list === '1',
+               is_open_source: info.is_open_source === '1'
+             };
+          } else {
+             _currentSecCache[key] = null;
+          }
+        } else {
+          _currentSecCache[key] = null;
+        }
+      } catch(e) {
+        _currentSecCache[key] = null;
+      }
+    }
+    
+    const sec = _currentSecCache[key];
+    if (!sec) return;
+    
+    let isBlocker = false;
+    let warnings = [];
+    
+    if (sec.is_honeypot || sec.cannot_sell) {
+      isBlocker = true;
+      warnings.push('CRITICAL: This token is a Honeypot (cannot be sold).');
+    }
+    if (sec.buy_tax > 10 || sec.sell_tax > 10) {
+      warnings.push(`High Tax: Buy ${sec.buy_tax.toFixed(1)}% / Sell ${sec.sell_tax.toFixed(1)}%`);
+    }
+    if (!sec.trust_list) {
+      if (!sec.is_open_source) {
+        warnings.push('Contract source code is not verified (high risk).');
+      }
+      if (sec.transfer_pausable) {
+        warnings.push('Admin can pause transfers.');
+      }
+    }
+    
+    if (isBlocker) {
+      badge.className = 'sec-badge warn';
+      badge.innerHTML = '⚠️ SCAM';
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = '<strong>Security Warning:</strong><br>' + warnings.join('<br>');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'SWAP DISABLED (SCAM)';
+        btn.classList.add('btn-disabled');
+      }
+    } else if (warnings.length > 0) {
+      badge.className = 'sec-badge warn';
+      badge.innerHTML = '⚠️ RISK';
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = '<strong>Security Warning:</strong><br>' + warnings.join('<br>');
+    } else {
+      badge.className = 'sec-badge safe';
+      badge.innerHTML = sec.trust_list ? '✓ VERIFIED' : '✓ SAFE';
+      warnBox.style.display = 'none';
+    }
+}
+
 function updateTokenUI(){
-  if(fromTok){
+  if(fromTok){ checkTokenSecurity(fromTok).then(()=>updateBtnState());
     document.getElementById('from-tok-icon-wrap').innerHTML=tokIconEl(fromTok,32,fromChainId);
     document.getElementById('from-tok-sym').textContent=fromTok.sym;
     queueTokenLogoHydration(fromChainId, [fromTok], ()=>updateTokenUI());
@@ -1290,6 +902,21 @@ function updateTokenUI(){
     document.getElementById('to-tok-sym').textContent=toTok.sym;
     queueTokenLogoHydration(toChainId, [toTok], ()=>updateTokenUI());
   }
+}
+
+
+function flipTokens(){
+  [fromTok, toTok] = [toTok, fromTok];
+  _bridgeNeedsApproval = false;
+  _lastBridgeApprove = null;
+  updateTokenUI();
+  clearRoutes();
+  updateBals();
+  if (wallet) {
+    loadBalsFast();
+    loadBals();
+  }
+  scheduleQuote();
 }
 
 function flipChains(){
@@ -1307,7 +934,7 @@ function flipChains(){
 }
 
 // ═════════════════���═════════════════════════
-// WALLET — EIP-6963 and WalletConnect
+// WALLET - EIP-6963 and WalletConnect
 // ═══════════════════════════════════════════
 const _wDetected = new Map();
 let _wProvider = null;
@@ -1545,7 +1172,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#top-right')) { doc
 // BALANCES
 // ═══════════════════════════════════════════
 
-// Apply balances to modal list — only updates tokens explicitly present in balMap
+// Apply balances to modal list - only updates tokens explicitly present in balMap
 // Does NOT clear tokens missing from balMap (prevents flicker with partial data)
 function applyModalBals(side, balMap, clearMissing=false) {
   const chainId = side==='from' ? fromChainId : toChainId;
@@ -1622,7 +1249,7 @@ async function loadBalsForModal(side){
   });
   if(Object.keys(cachedMap).length > 0) applyModalBals(side, cachedMap);
 
-  // ── Step 2: fetch each token individually in parallel (no batch — avoids RPC limits) ──
+  // ── Step 2: fetch each token individually in parallel (no batch - avoids RPC limits) ──
   // Fire all requests at once, apply each result the moment it arrives
   const freshBals = {};
   const requests = list.map(async t => {
@@ -1641,7 +1268,7 @@ async function loadBalsForModal(side){
       if(d.result && d.result !== '0x' && d.result !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
         freshBals[key] = d.result;
         bals[storageKey] = d.result;
-        // Show each token balance the moment it arrives — no waiting for all
+        // Show each token balance the moment it arrives - no waiting for all
         applyModalBals(side, {[key]: d.result});
       }
     } catch(e) {}
@@ -1717,14 +1344,14 @@ function getBal(tok,chainId=fromChainId){
   return hexToDec(raw,tok?.addr===NATIVE?18:Number(tok?.dec??18));
 }
 function formatRawBalance(raw,dec){
-  if(raw===null||raw===undefined)return '—';
+  if(raw===null||raw===undefined)return '-';
   const value=rawHexToBigInt(raw);if(value===0n)return '0';
   const exact=formatUnitsExact(value,Number(dec),8);
   const numeric=Number(exact);
   if(Number.isFinite(numeric)&&numeric>=1000)return numeric.toLocaleString('en-US',{maximumFractionDigits:4});
   return exact;
 }
-function fmtBal(v){ if(v===null||v===undefined) return '—'; if(v===0) return '0'; return v>0.001?v.toFixed(v<1?4:2):v.toFixed(6); }
+function fmtBal(v){ if(v===null||v===undefined) return '-'; if(v===0) return '0'; return v>0.001?v.toFixed(v<1?4:2):v.toFixed(6); }
 function updateBals(){
   const raw=getBalRawHex(fromTok);
   document.getElementById('send-bal').textContent=formatRawBalance(raw,fromTok?.addr===NATIVE?18:Number(fromTok?.dec??18));
@@ -1841,7 +1468,18 @@ function setSlipCustom(v){
     scheduleQuote();
   }else setStatus('Slippage must be between 0.01% and 5%.','err');
 }
-function onRecipientChange(){ scheduleQuote(); }
+
+function onRecipientChange(){
+  const input = document.getElementById('recipient-address');
+  const warn = document.getElementById('poisoning-warning');
+  if(wallet && input.value.trim().length > 0 && input.value.trim().toLowerCase() !== wallet.toLowerCase() && isValidAddr(input.value.trim())) {
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+  scheduleQuote();
+}
+
 function getRecipientAddress(){
   const value=String(document.getElementById('recipient-address')?.value||'').trim();
   if(!value) return wallet||'';
@@ -1859,6 +1497,7 @@ function onAmtInput(){
   updateSendUsd(); scheduleQuote();
 }
 function scheduleQuote(){
+  clearQuoteTimer();
   clearTimeout(quoteTimer);
   if(!validateAmount(document.getElementById('send-amt').value)){ clearRoutes(); return; }
   if(!wallet){ routes=[];routesExpiresAt=0;document.getElementById('routes-section').style.display='none';updateBtnState();return; }
@@ -1875,7 +1514,7 @@ function showRoutesLoading(){
 async function fetchRoutes(){
   const requestId=++_routeReqId;
   if(!wallet){clearRoutes();updateBtnState();return;}
-  if(!fromTok||!toTok||fromChainId===toChainId){ clearRoutes(); return; }
+  if(!fromTok||!toTok){ clearRoutes(); return; }
   let rawAmount;
   try{ rawAmount=getSendRawAmount(); if(rawAmount<=0n) throw new Error('Invalid amount'); }
   catch(e){ setStatus(e.message,'err'); clearRoutes(); return; }
@@ -1889,13 +1528,64 @@ async function fetchRoutes(){
     const gasAmount=rawAmount/100n;
     if(gasAmount>0n) params.set('fromAmountForGas',gasAmount.toString());
   }
+
   try{
-    const response=await fetch('/api/bridge-routes?'+params,{signal:AbortSignal.timeout(22000)});
-    const data=await response.json().catch(()=>({}));
-    if(requestId!==_routeReqId) return;
-    if(!response.ok||data.error) throw new Error(data.details||data.error||`Bridge API ${response.status}`);
-    routes=(data.routes||[]).filter(route=>Array.isArray(route?.steps)&&route.steps.length>0);
-    routesExpiresAt=Number(data.expiresAt||Date.now()+55000);
+    let data;
+    if (fromChainId === toChainId) {
+       // Same Chain - query 0x, ParaSwap, OpenOcean concurrently
+       const slipBps = Math.round(slip * 10000);
+       const rawStr = rawAmount.toString();
+       const fetchers = [
+          { id: '0x', fn: () => fetch0xQuote(rawStr, slipBps) },
+          { id: 'paraswap', fn: () => fetchParaswapQuote(rawStr, slipBps) },
+          { id: 'openocean', fn: () => fetchOpenOceanQuote(rawStr, slipBps) }
+       ];
+       
+       const settled = await Promise.allSettled(fetchers.map(f => f.fn()));
+       if (requestId !== _routeReqId) return;
+       
+       const swapRoutes = [];
+       for (const res of settled) {
+          if (res.status === 'fulfilled' && res.value && res.value.buyAmount) {
+             const q = res.value;
+             swapRoutes.push({
+                id: 'swap-' + q._agg.toLowerCase() + '-' + Date.now(),
+                isSwap: true,
+                tool: q._agg,
+                toAmount: q.buyAmount,
+                toAmountMin: q.minBuyAmount || q.buyAmount,
+                executionDuration: 3,
+                steps: [
+                   {
+                      type: 'swap',
+                      tool: q._agg,
+                      toolDetails: { name: q._agg, logoURI: q._logo },
+                      estimate: { toAmount: q.buyAmount }
+                   }
+                ],
+                txData: q.transaction,
+                allowanceTarget: q.allowanceTarget
+             });
+          }
+       }
+       
+       if (!swapRoutes.length) {
+          throw new Error('No liquidity routes found for swap');
+       }
+       
+       // Sort routes descending by output amount
+       swapRoutes.sort((a, b) => BigInt(b.toAmount) > BigInt(a.toAmount) ? 1 : -1);
+       routes = swapRoutes;
+    } else {
+       // Cross Chain - use bridge API
+       const response=await fetch('/api/bridge-routes?'+params,{signal:AbortSignal.timeout(22000)});
+       data=await response.json().catch(()=>({}));
+       if(requestId!==_routeReqId) return;
+       if(!response.ok||data.error) throw new Error(data.details||data.error||`Bridge API ${response.status}`);
+       routes=(data.routes||[]).filter(route=>Array.isArray(route?.steps)&&route.steps.length>0);
+    }
+
+    routesExpiresAt=Number(data?.expiresAt||Date.now()+55000);
     if(!routes.length){ document.getElementById('routes-list').innerHTML='<div class="routes-loading" style="justify-content:center">No executable route found</div>'; updateBtnState(); return; }
     renderRoutes(); selectRoute(0); setStatus('');
   }catch(e){ if(requestId!==_routeReqId)return; setStatus(e.name==='AbortError'?'Route request timed out.':`Unable to find routes: ${e.message}`,'err'); clearRoutes(); }
@@ -1935,9 +1625,9 @@ function routeToolNames(route){
 function routePathLabel(route){
   const first=route?.steps?.[0]?.action?.fromToken?.symbol||fromTok?.sym||'';
   const last=route?.steps?.at(-1)?.action?.toToken?.symbol||toTok?.sym||'';
-  const tools=routeToolNames(route).join(' → ');
+  const primary=getPrimaryBridgeTool(route).name;
   const txCount=Math.max(1,route?.steps?.length||1);
-  return `${first} · ${tools} · ${last} · ${txCount} wallet transaction${txCount===1?'':'s'}`;
+  return `${first} · ${primary} · ${last} · ${txCount} wallet transaction${txCount===1?'':'s'}`;
 }
 function getBridgeIcon(route){
   const url=String(route?.steps?.[0]?.toolDetails?.logoURI||'');
@@ -1951,14 +1641,20 @@ function renderRoutes(){
   document.getElementById('routes-section').style.display='block';
   document.getElementById('routes-count').textContent=`${routes.length} found`;
   document.getElementById('routes-list').innerHTML=routes.map((route,index)=>{
-    const est=routeEstimate(route),cost=routeCosts(route),names=routeToolNames(route),icon=getBridgeIcon(route);
-    const name=names[0]||'Bridge';
+    const est=routeEstimate(route),cost=routeCosts(route);
+    const toolInfo = getPrimaryBridgeTool(route);
+    const name = toolInfo.name;
+    const icon = toolInfo.logo || getBridgeIcon(route);
+    
+    const isFast = (!route.isSwap && ((est.executionDuration && est.executionDuration <= 180) || ['across', 'relay', 'debridge', 'layerswap', 'stargate'].includes(toolInfo.toolKey)));
+    const badgeHtml = isFast ? `<div style="display:inline-block; background:rgba(245,181,27,0.2); color:var(--accent); font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle;">⚡ FASTEST (${fmtTime(est.executionDuration||120)})</div>` : '';
+
     const toAmount=fmtAmt(est.toAmount,toTok.dec);
-    const time=fmtTime(est.executionDuration||120);
+    const time=fmtTime(est.executionDuration||(route.isSwap ? 3 : 120));
     const impact=routePriceImpact(route);
     const iconHtml=icon?`<img class="rc-bridge-icon" src="${esc(icon)}" onerror="this.style.display='none'" alt="${esc(name)}">`:`<div class="rc-bridge-icon" style="background:rgba(56,189,248,.12);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#38bdf8">${esc(name.slice(0,2).toUpperCase())}</div>`;
     return `<div class="route-card${index===0?' best-badge':''}" id="route-card-${index}" role="button" tabindex="0" onclick="selectRoute(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectRoute(${index})}">
-      <div class="rc-bridge">${iconHtml}<div><span class="rc-bridge-name">${esc(name)}</span><div class="route-path" title="${esc(routePathLabel(route))}">${esc(routePathLabel(route))}</div></div></div>
+      <div class="rc-bridge">${iconHtml}<div><span class="rc-bridge-name">${esc(name)}</span>${badgeHtml}<div class="route-path" title="${esc(routePathLabel(route))}">${esc(routePathLabel(route))}</div></div></div>
       <div class="rc-mid"><div class="rc-amount">${esc(toAmount)} ${esc(toTok.sym)}</div><div class="rc-usd">${est.toAmountUSD?`≈ $${Number(est.toAmountUSD).toFixed(2)}`:''}</div></div>
       <div class="rc-right"><div class="rc-time">⏱ ${esc(time)}</div><div class="rc-fee">Route cost ~$${cost.total.toFixed(2)}</div><div class="rc-tags">${index===0?'<span class="rc-tag">CHEAPEST</span>':''}${impact!==null&&impact>3?'<span class="rc-tag" style="color:#fbbf24">HIGH IMPACT</span>':''}</div></div>
     </div>`;
@@ -1970,8 +1666,8 @@ async function selectRoute(index){
   const route=routes[index]; if(!route) return;
   const est=routeEstimate(route),cost=routeCosts(route),impact=routePriceImpact(route);
   document.getElementById('receive-amt').textContent=`${fmtAmt(est.toAmount,toTok.dec)} ${toTok.sym}`;
-  document.getElementById('receive-usd').textContent=est.toAmountUSD?`≈ $${Number(est.toAmountUSD).toFixed(2)}`:'≈ —';
-  document.getElementById('fee-src-gas').textContent=cost.gas?`~$${cost.gas.toFixed(2)}`:'—';
+  document.getElementById('receive-usd').textContent=est.toAmountUSD?`≈ $${Number(est.toAmountUSD).toFixed(2)}`:'≈ -';
+  document.getElementById('fee-src-gas').textContent=cost.gas?`~$${cost.gas.toFixed(2)}`:'-';
   document.getElementById('fee-bridge').textContent=cost.fees?`~$${cost.fees.toFixed(2)}`:'$0.00';
   document.getElementById('fee-approval').textContent='Checking…';
   document.getElementById('fee-time').textContent=fmtTime(est.executionDuration||120);
@@ -1979,7 +1675,7 @@ async function selectRoute(index){
   document.getElementById('fee-section').style.display='block';
   if(impact!==null&&impact>3) setStatus(`Warning: estimated value impact is ${impact.toFixed(2)}%. Review the route carefully.`,'warn');
   _bridgeNeedsApproval=false;
-  const spender=route.steps?.[0]?.estimate?.approvalAddress;
+  const spender=route.isSwap ? route.allowanceTarget : route.steps?.[0]?.estimate?.approvalAddress;
   if(wallet&&fromTok.addr!==NATIVE&&isValidAddr(spender)){
     try{
       const current=await _requestWallet('eth_chainId',[],{timeoutMs:6000});
@@ -1993,6 +1689,8 @@ async function selectRoute(index){
   updateBtnState();
 }
 function clearRoutes(){
+  clearQuoteTimer();
+  hideProgress();
   _routeReqId++; routes=[]; routesExpiresAt=0;
   document.getElementById('routes-section').style.display='none';
   document.getElementById('fee-section').style.display='none';
@@ -2006,7 +1704,37 @@ function updateBtnState(){
   if(!validateAmount(document.getElementById('send-amt').value)){btn.disabled=true;btn.textContent='Enter Amount';btn.className='bridge-btn';return;}
   if(!wallet){btn.disabled=false;btn.textContent='Connect Wallet';btn.className='bridge-btn ready';return;}
   if(!routes.length){btn.disabled=true;btn.textContent='Select Route';btn.className='bridge-btn';return;}
-  btn.disabled=false;btn.textContent=_bridgeNeedsApproval?`Approve & Bridge ${fromTok?.sym||''}`:'Bridge →';btn.className=_bridgeNeedsApproval?'bridge-btn approve':'bridge-btn ready';
+
+    const consentBox = document.getElementById('impact-consent-box');
+    const consentCb = document.getElementById('impact-consent-cb');
+    if (routes.length > 0) {
+      const activeRoute = routes[selectedRouteIdx] || routes[0];
+      const est = routeEstimate(activeRoute);
+      const inputUSD = Number(est.fromAmountUSD || 0);
+      const outputUSD = Number(est.toAmountUSD || 0);
+      const impact = routePriceImpact(activeRoute);
+      // Only block if impact is genuinely high and loss is more than $1 (ignore fixed relayer fee on micro-tests)
+      const isRealImpact = impact !== null && impact >= 15 && (inputUSD >= 5 || (inputUSD - outputUSD) >= 1.0);
+      if (isRealImpact) {
+        consentBox.style.display = 'block';
+        if (!consentCb.checked) {
+          btn.textContent = 'Accept Price Impact Risk';
+          btn.disabled = true;
+          btn.className = 'bridge-btn';
+          return;
+        }
+      } else {
+        consentBox.style.display = 'none';
+      }
+    } else {
+      consentBox.style.display = 'none';
+    }
+
+    btn.disabled=false;
+  const actionWord = fromChainId === toChainId ? 'Swap' : 'Bridge';
+  btn.textContent = _bridgeNeedsApproval ? `Approve & ${actionWord} ${fromTok?.sym||''}` : `${actionWord} →`;
+  btn.className = _bridgeNeedsApproval ? 'bridge-btn approve' : 'bridge-btn ready';
+
 }
 function setBtnLoading(on){bridgeBusy=!!on;updateBtnState();}
 function setStatus(message,type){const el=document.getElementById('status-msg');el.textContent=String(message||'');el.className='status-msg'+(type?' '+type:'');}
@@ -2078,9 +1806,20 @@ async function checkAndApproveToken(token,spender,amount,chainId,owner){
   if(cache&&cache.chainId===chainId&&cache.owner===owner.toLowerCase()&&cache.token===token.toLowerCase()&&cache.spender===spender.toLowerCase()&&cache.amount>=required) return true;
   let allowance=await readAllowance(token,owner,spender);
   if(allowance>=required) return true;
-  if(allowance>0n){ setStatus('Resetting the existing token allowance…','warn'); await sendApproval(token,spender,0n,chainId,owner); allowance=0n; }
-  setStatus('Confirm the exact token allowance in your wallet…','warn');
-  await sendApproval(token,spender,required,chainId,owner);
+  
+  setStatus(`Confirm ${fromTok?.sym || 'token'} allowance in your wallet…`,'warn');
+  try {
+    await sendApproval(token,spender,required,chainId,owner);
+  } catch(firstErr) {
+    if(allowance>0n) {
+      setStatus('Resetting existing token allowance to 0…','warn');
+      await sendApproval(token,spender,0n,chainId,owner);
+      setStatus(`Confirm new ${fromTok?.sym || 'token'} allowance…`,'warn');
+      await sendApproval(token,spender,required,chainId,owner);
+    } else {
+      throw firstErr;
+    }
+  }
   const verified=await readAllowance(token,owner,spender);
   if(verified<required) throw new Error('Token allowance was not granted');
   _lastBridgeApprove={chainId,owner:owner.toLowerCase(),token:token.toLowerCase(),spender:spender.toLowerCase(),amount:required};
@@ -2103,8 +1842,21 @@ async function doBridge(){
   if(!wallet){connectWallet();return;}
   const route=routes[selectedRouteIdx];
   if(!route){setStatus('Select a route first.','err');return;}
-  if(Date.now()>routesExpiresAt){setStatus('The route expired. It has been refreshed; review it and press Bridge again.','warn');await fetchRoutes();return;}
+  if(Date.now()>routesExpiresAt){setStatus('The route expired. It has been refreshed; review it and press Swap/Bridge again.','warn');await fetchRoutes();return;}
   if(slippage>1&&!confirm(`Slippage is ${slippage}%. Continue with this high tolerance?`)) return;
+  
+  const secKey = fromChainId + '-' + (fromTok.addr || '').toLowerCase();
+  const sec = _currentSecCache[secKey];
+  if(sec) {
+     if(sec.cannot_sell || sec.is_honeypot) {
+         setStatus(`Security check failed: ${fromTok.sym} is flagged as a honeypot and cannot be sold.`, 'err');
+         return;
+     }
+     if((sec.buy_tax > 0.05 || sec.sell_tax > 0.05) && !confirm(`${fromTok.sym} has high transfer taxes (Buy: ${(sec.buy_tax*100).toFixed(1)}%, Sell: ${(sec.sell_tax*100).toFixed(1)}%). This reduces your received amount. Continue?`)) {
+         return;
+     }
+  }
+
   const executionWallet=String(wallet).toLowerCase();
   let recipient;
   try{
@@ -2114,6 +1866,7 @@ async function doBridge(){
     if(firstAction.fromAddress&&String(firstAction.fromAddress).toLowerCase()!==executionWallet) throw new Error('The selected route belongs to another wallet. Refresh the route.');
     if(finalAction.toAddress&&String(finalAction.toAddress).toLowerCase()!==String(recipient).toLowerCase()) throw new Error('The destination recipient changed. Refresh the route.');
   }catch(e){setStatus(e.message,'err');return;}
+
   setBtnLoading(true); showProgress('',routeToolNames(route).join(' → '));
   const initialFromChainId=fromChainId,initialToChainId=toChainId;
   const initialFromTok={...fromTok},initialToTok={...toTok};
@@ -2121,76 +1874,172 @@ async function doBridge(){
   const fromNet=NETWORKS.find(n=>n.id===initialFromChainId),toNet=NETWORKS.find(n=>n.id===initialToChainId);
   const tokenSnapshots=[{...initialFromTok,chainId:initialFromChainId},{...initialToTok,chainId:initialToChainId}];
   let historyItem=null,crossHash=null,crossTool='',crossFromChain=null,crossToChain=null,lastHash=null;
+
   try{
     await assertActiveWalletAccount(executionWallet);
-    for(let index=0;index<route.steps.length;index++){
-      const originalStep=route.steps[index];
-      const populated=await populateBridgeStep(originalStep);
-      const step=populated.step||originalStep;
-      const action=step.action||originalStep.action;
-      const chainId=Number(action.fromChainId);
-      if(action.fromAddress&&String(action.fromAddress).toLowerCase()!==executionWallet) throw new Error('A route step has an unexpected sender address');
+
+    if (route.isSwap) {
+      const chainId = initialFromChainId;
       await ensureWalletChain(chainId);
       await assertActiveWalletAccount(executionWallet);
-      const tokenAddress=String(action.fromToken?.address||'').toLowerCase();
-      const spender=String(populated.approvalAddress||'');
-      if(tokenAddress!==NATIVE&&tokenAddress!=='0x0000000000000000000000000000000000000000') await checkAndApproveToken(tokenAddress,spender,String(action.fromAmount),chainId,executionWallet);
+      const spender = route.allowanceTarget;
+      const rawAmount = parseUnitsExact(sendAmountText, initialFromTok.dec);
+
+      // Check native balance + gas reserve
+      if (initialFromTok.addr.toLowerCase() === NATIVE) {
+        const bal = getRawBalance(initialFromTok);
+        if (bal !== null && rawAmount > bal) {
+          throw new Error(`Insufficient ${initialFromTok.sym} balance for amount and network gas.`);
+        }
+      }
+
+      if(initialFromTok.addr.toLowerCase()!==NATIVE && spender) {
+        setProgStep(0, 'active');
+        setStatus(`Approve ${initialFromTok.sym} in your wallet...`, 'warn');
+        await checkAndApproveToken(initialFromTok.addr,spender,String(rawAmount),chainId,executionWallet);
+      }
+      
       setProgStep(0,'done'); setProgStep(1,'active');
-      setStatus(`Confirm step ${index+1} of ${route.steps.length} in your wallet…`,'warn');
-      const isCross=Number(action.fromChainId)!==Number(action.toChainId);
-      const stepTool=String(step.tool||originalStep.tool||'bridge');
-      const hash=await sendWalletTransaction(populated.transactionRequest,chainId,`bridge step ${index+1}`,{
-        fromAddress:executionWallet,
-        onHash:submittedHash=>{
+      
+      // Ensure we have executable transaction data (re-fetch if quote was obtained before approval)
+      let txData = route.txData;
+      if (!txData || !txData.to || !txData.data) {
+        setStatus('Preparing swap transaction…', 'warn');
+        const slipBps = Math.round(Math.min(Math.max(slippage,0.01),5) * 100);
+        const rawStr = rawAmount.toString();
+        if (route.tool === 'ParaSwap') {
+          const fresh = await fetchParaswapQuote(rawStr, slipBps);
+          txData = fresh.transaction;
+        } else if (route.tool === '0x Protocol') {
+          const fresh = await fetch0xQuote(rawStr, slipBps);
+          txData = fresh.transaction;
+        } else if (route.tool === 'OpenOcean') {
+          const fresh = await fetchOpenOceanQuote(rawStr, slipBps);
+          txData = fresh.transaction;
+        }
+      }
+
+      if (!txData || !txData.to || !txData.data) {
+        throw new Error('Could not build executable swap transaction. Please refresh quotes and try again.');
+      }
+
+      setStatus('Confirm swap in your wallet...','warn');
+      
+      const hash = await sendWalletTransaction(txData, chainId, 'swap', {
+        fromAddress: executionWallet,
+        onHash: submittedHash => {
           lastHash=submittedHash;
-          if(isCross){crossHash=submittedHash;crossTool=stepTool;crossFromChain=Number(action.fromChainId);crossToChain=Number(action.toChainId);setProgStep(2,'active');}
-          if(!historyItem){
-            const sourceNetwork=NETWORKS.find(net=>net.id===chainId)||fromNet;
-            historyItem={hash:submittedHash,status:'pending',fromSym:initialFromTok.sym,toSym:initialToTok.sym,sendAmt:sendAmountText,recvAmt:fmtAmt(routeEstimate(route).toAmount,initialToTok.dec),fromNet:fromNet?.name,toNet:toNet?.name,fromChainId:initialFromChainId,toChainId:initialToChainId,statusFromChainId:isCross?Number(action.fromChainId):initialFromChainId,statusToChainId:isCross?Number(action.toChainId):initialToChainId,bridge:isCross?stepTool:stepTool,explorer:sourceNetwork?.explorer,recipient,routeId:String(route.id||''),tokenSnapshots,stepHashes:[submittedHash],ts:Date.now()};
-            addToHistory(historyItem);
-          }else{
-            const previousHash=historyItem.hash;
-            if(!historyItem.stepHashes.includes(submittedHash)) historyItem.stepHashes.push(submittedHash);
-            const patch={stepHashes:historyItem.stepHashes,bridge:isCross?stepTool:historyItem.bridge};
-            if(isCross){const crossNet=NETWORKS.find(net=>net.id===Number(action.fromChainId));Object.assign(patch,{hash:submittedHash,explorer:crossNet?.explorer||historyItem.explorer,statusFromChainId:Number(action.fromChainId),statusToChainId:Number(action.toChainId)});}
-            updateHistoryRecord(previousHash,patch);
-            if(isCross) historyItem.hash=submittedHash;
-          }
+          const sourceNetwork=NETWORKS.find(net=>net.id===chainId)||fromNet;
+          historyItem={hash:submittedHash,status:'pending',fromSym:initialFromTok.sym,toSym:initialToTok.sym,sendAmt:sendAmountText,recvAmt:fmtAmt(routeEstimate(route).toAmount,initialToTok.dec),fromNet:fromNet?.name,toNet:toNet?.name,fromChainId:initialFromChainId,toChainId:initialToChainId,statusFromChainId:initialFromChainId,statusToChainId:initialToChainId,bridge:route.tool,explorer:sourceNetwork?.explorer,recipient,routeId:String(route.id||''),tokenSnapshots,stepHashes:[submittedHash],ts:Date.now()};
+          addToHistory(historyItem);
         }
       });
-      lastHash=hash; setProgStep(1,'done');
-      if(isCross&&index<route.steps.length-1){
-        setStatus('Waiting for the cross-chain step before continuing…','warn');
-        const final=await waitBridgeStatusFinal(hash,Number(action.fromChainId),Number(action.toChainId),crossTool);
-        if(final.status!=='DONE'||final.substatus!=='COMPLETED'){
-          const error=new Error(final.substatusMessage||`Cross-chain step ended as ${final.substatus||final.status}`);
-          error.bridgeStatus=final.status==='DONE'&&final.substatus==='PARTIAL'?'partial':final.status==='DONE'&&final.substatus==='REFUNDED'?'refunded':'failed';
-          error.bridgeData=final;throw error;
+      lastHash = hash;
+      setProgStep(1,'done');
+      setProgStep(2,'done');
+      setStatus('Swap completed successfully! 🎉','ok');
+    } else {
+      for(let index=0;index<route.steps.length;index++){
+        const originalStep=route.steps[index];
+        const populated=await populateBridgeStep(originalStep);
+        const step=populated.step||originalStep;
+        const action=step.action||originalStep.action;
+        const chainId=Number(action.fromChainId);
+        if(action.fromAddress&&String(action.fromAddress).toLowerCase()!==executionWallet) throw new Error('A route step has an unexpected sender address');
+        await ensureWalletChain(chainId);
+        await assertActiveWalletAccount(executionWallet);
+        const tokenAddress=String(action.fromToken?.address||'').toLowerCase();
+        const spender=String(populated.approvalAddress||'');
+        if(tokenAddress!==NATIVE&&tokenAddress!=='0x0000000000000000000000000000000000000000') await checkAndApproveToken(tokenAddress,spender,String(action.fromAmount),chainId,executionWallet);
+        setProgStep(0,'done'); setProgStep(1,'active');
+        setStatus(`Confirm step ${index+1} of ${route.steps.length} in your wallet…`,'warn');
+        const isCross=Number(action.fromChainId)!==Number(action.toChainId);
+        const stepTool=String(step.tool||originalStep.tool||'bridge');
+        const hash=await sendWalletTransaction(populated.transactionRequest,chainId,`bridge step ${index+1}`,{
+          fromAddress:executionWallet,
+          onHash:submittedHash=>{
+            lastHash=submittedHash;
+            if(isCross){crossHash=submittedHash;crossTool=stepTool;crossFromChain=Number(action.fromChainId);crossToChain=Number(action.toChainId);setProgStep(2,'active');}
+            if(!historyItem){
+              const sourceNetwork=NETWORKS.find(net=>net.id===chainId)||fromNet;
+              historyItem={hash:submittedHash,status:'pending',fromSym:initialFromTok.sym,toSym:initialToTok.sym,sendAmt:sendAmountText,recvAmt:fmtAmt(routeEstimate(route).toAmount,initialToTok.dec),fromNet:fromNet?.name,toNet:toNet?.name,fromChainId:initialFromChainId,toChainId:initialToChainId,statusFromChainId:isCross?Number(action.fromChainId):initialFromChainId,statusToChainId:isCross?Number(action.toChainId):initialToChainId,bridge:isCross?stepTool:stepTool,explorer:sourceNetwork?.explorer,recipient,routeId:String(route.id||''),tokenSnapshots,stepHashes:[submittedHash],ts:Date.now()};
+              addToHistory(historyItem);
+            }else{
+              const previousHash=historyItem.hash;
+              if(!historyItem.stepHashes.includes(submittedHash)) historyItem.stepHashes.push(submittedHash);
+              const patch={stepHashes:historyItem.stepHashes,bridge:isCross?stepTool:historyItem.bridge};
+              if(isCross){const crossNet=NETWORKS.find(net=>net.id===Number(action.fromChainId));Object.assign(patch,{hash:submittedHash,explorer:crossNet?.explorer||historyItem.explorer,statusFromChainId:Number(action.fromChainId),statusToChainId:Number(action.toChainId)});}
+              updateHistoryRecord(previousHash,patch);
+              if(isCross) historyItem.hash=submittedHash;
+            }
+          }
+        });
+        lastHash=hash; setProgStep(1,'done');
+        if(isCross&&index<route.steps.length-1){
+          setStatus('Waiting for the cross-chain step before continuing…','warn');
+          const final=await waitBridgeStatusFinal(hash,Number(action.fromChainId),Number(action.toChainId),crossTool);
+          if(final.status!=='DONE'||final.substatus!=='COMPLETED'){
+            const error=new Error(final.substatusMessage||`Cross-chain step ended as ${final.substatus||final.status}`);
+            error.bridgeStatus=final.status==='DONE'&&final.substatus==='PARTIAL'?'partial':final.status==='DONE'&&final.substatus==='REFUNDED'?'refunded':'failed';
+            error.bridgeData=final;throw error;
+          }
         }
       }
     }
+
+    // Common completion for both Swap and Bridge
     _bridgeNeedsApproval=false;_lastBridgeApprove=null;
     document.getElementById('send-amt').value='';document.getElementById('send-usd').textContent='≈ $0.00';clearRoutes();
-    loadBalsFast();setTimeout(loadBals,5000);
+    loadBalsFast();setTimeout(loadBals,4000);
+    
     if(crossHash){
       pollBridgeStatus(crossHash,crossFromChain||initialFromChainId,crossToChain||initialToChainId,crossTool||historyItem?.bridge||'');
       setStatus('Source transaction confirmed. Tracking the destination transfer…','warn');
     }else{
-      updateHistoryRecord(historyItem?.hash||lastHash,{status:'confirmed'}); const confirmedItem=txHistory.find(entry=>entry.hash===(historyItem?.hash||lastHash));if(confirmedItem)rememberHistoryTokens({...confirmedItem,status:'confirmed'});setProgStep(2,'done');setProgStep(3,'done');setStatus('Bridge route completed.','ok');
+      updateHistoryRecord(historyItem?.hash||lastHash,{status:'confirmed'}); 
+      const confirmedItem=txHistory.find(entry=>entry.hash===(historyItem?.hash||lastHash));
+      if(confirmedItem)rememberHistoryTokens({...confirmedItem,status:'confirmed'});
+      setProgStep(2,'done');setProgStep(3,'done');
+      if(!route.isSwap) setStatus('Bridge route completed.','ok');
     }
   }catch(e){
     const timedOut=/confirmation timed out/i.test(String(e?.message||''));
     if(historyItem) updateHistoryRecord(historyItem.hash,{status:timedOut?'pending':(e.bridgeStatus||'failed'),message:e.message,substatus:e.bridgeData?.substatus||''});
     if(timedOut&&crossHash) pollBridgeStatus(crossHash,crossFromChain||initialFromChainId,crossToChain||initialToChainId,crossTool||historyItem?.bridge||'',{immediate:true});
-    setProgStep(2,timedOut?'active':'failed');setStatus(e?.code===4001?'Transaction rejected':(e?.message||'Bridge failed'),timedOut?'warn':'err');
+    setProgStep(2,timedOut?'active':'failed');
+    setStatus(e?.code===4001?'Transaction rejected':(e?.message||(route.isSwap?'Swap failed':'Bridge failed')),timedOut?'warn':'err');
   }finally{setBtnLoading(false);}
 }
 
 // ═══════════════════════════════════════════
 // PROGRESS AND STATUS
 // ═══════════════════════════════════════════
-function showProgress(txHash){
-  document.getElementById('progress-wrap').classList.add('show');
+function showProgress(txHash, customTitle=''){
+  const wrap = document.getElementById('progress-wrap');
+  wrap.classList.add('show');
+  const isSwap = fromChainId === toChainId;
+  const titleEl = wrap.querySelector('.prog-title');
+  if (titleEl) {
+    titleEl.textContent = isSwap ? '⚡ Swap in progress…' : '🔗 Bridge in progress…';
+  }
+  
+  // Update step labels
+  const steps = wrap.querySelectorAll('.prog-step');
+  const lines = wrap.querySelectorAll('.prog-line');
+  if (isSwap) {
+    if (steps[0]) steps[0].querySelector('.prog-label').textContent = fromTok.addr === NATIVE ? 'Ready' : 'Approve';
+    if (steps[1]) steps[1].querySelector('.prog-label').textContent = 'Swap';
+    if (steps[2]) steps[2].querySelector('.prog-label').textContent = 'Done';
+    if (steps[3]) steps[3].style.display = 'none';
+    if (lines[2]) lines[2].style.display = 'none';
+  } else {
+    if (steps[0]) steps[0].querySelector('.prog-label').textContent = 'Approved';
+    if (steps[1]) steps[1].querySelector('.prog-label').textContent = 'Sent';
+    if (steps[2]) steps[2].querySelector('.prog-label').textContent = 'Bridging';
+    if (steps[3]) { steps[3].style.display = 'flex'; steps[3].querySelector('.prog-label').textContent = 'Done'; }
+    if (lines[2]) lines[2].style.display = 'block';
+  }
+
   for(let i=0;i<4;i++) setProgStep(i,i===0?'active':'pending');
   if(txHash) document.getElementById('prog-tx-link').innerHTML=getBridgeTxLinks(fromChainId,txHash,toChainId,'');
   else document.getElementById('prog-tx-link').innerHTML='';
@@ -2198,15 +2047,15 @@ function showProgress(txHash){
 function hideProgress(){document.getElementById('progress-wrap').classList.remove('show');}
 function getBridgeTxLinks(fromChain,sourceHash,toChain,destinationHash,lifiLink=''){
   const links=[],fromNet=NETWORKS.find(n=>n.id===Number(fromChain)),toNet=NETWORKS.find(n=>n.id===Number(toChain));
-  if(fromNet&&isValidTxHash(sourceHash)) links.push(`<a class="tx-link" href="${esc(fromNet.explorer)}/tx/${esc(sourceHash)}" target="_blank" rel="noopener noreferrer">Source tx ↗</a>`);
-  if(toNet&&isValidTxHash(destinationHash)) links.push(`<a class="tx-link" href="${esc(toNet.explorer)}/tx/${esc(destinationHash)}" target="_blank" rel="noopener noreferrer">Destination tx ↗</a>`);
-  if(/^https:\/\//i.test(lifiLink)) links.push(`<a class="tx-link" href="${esc(lifiLink)}" target="_blank" rel="noopener noreferrer">LI.FI Explorer ↗</a>`);
+  if(fromNet&&isValidTxHash(sourceHash)) links.push(`<a class="tx-link" href="${esc(fromNet.explorer)}/tx/${esc(sourceHash)}" target="_blank" rel="noopener noreferrer">Source tx ?</a>`);
+  if(toNet&&isValidTxHash(destinationHash)) links.push(`<a class="tx-link" href="${esc(toNet.explorer)}/tx/${esc(destinationHash)}" target="_blank" rel="noopener noreferrer">Destination tx ?</a>`);
+  if(/^https:\/\//i.test(lifiLink)) links.push(`<a class="tx-link" href="${esc(lifiLink)}" target="_blank" rel="noopener noreferrer">LI.FI Explorer ?</a>`);
   return links.join(' &nbsp;•&nbsp; ');
 }
 function setProgStep(index,state){
   const dot=document.getElementById('prog-'+index);if(!dot)return;
   dot.className='prog-dot'+(state!=='pending'?` ${state}`:'');
-  dot.textContent=state==='done'?'✓':state==='failed'?'✕':state==='active'?'⏳':'';
+  dot.innerHTML=state==='done'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>':state==='failed'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>':state==='active'?'<div class="tx-premium-spinner" style="width:14px;height:14px;border-width:2px;margin:0;box-shadow:none;"></div>':'';
   if(index>0){const line=document.getElementById('prog-line-'+(index-1));if(line)line.className='prog-line'+(state==='done'?' done':'');}
 }
 async function fetchBridgeStatus(txHash,fromChain,toChain,bridgeName){
@@ -2335,9 +2184,9 @@ async function pickChain(id){
   const wasFrom=chainModalFor==='from';
   let swapped=false;
   if(wasFrom){
-    if(id===toChainId){[fromChainId,toChainId]=[toChainId,fromChainId];swapped=true;}else fromChainId=id;
+    fromChainId=id;
   }else{
-    if(id===fromChainId){[fromChainId,toChainId]=[toChainId,fromChainId];swapped=true;}else toChainId=id;
+    toChainId=id;
   }
   await Promise.all([hydrateMajorTokensForChain(fromChainId),hydrateMajorTokensForChain(toChainId)]);
   if(swapped){
@@ -2420,7 +2269,7 @@ function renderTokList(q){
     if(!modal||!modal.classList.contains('open')) return;
     renderTokList(document.getElementById('tok-search')?.value || '');
   });
-  // Если полный адрес и не найден в списке — ищем через API
+  // Если полный адрес и не найден в списке - ищем через API
   if(isFullAddr && filtered.length===0){
     document.getElementById('tok-list').innerHTML=
       '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.4);font-family:\'DM Mono\',monospace;font-size:15px;">🔍 Looking up token...</div>';
@@ -2464,6 +2313,40 @@ function renderTokList(q){
   document.getElementById('tok-list').innerHTML=rows||`<div style="padding:20px;text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:15px;">No tokens found</div>`;
 }
 
+
+function saveCustomToken(chainId, t) {
+  try {
+    let saved = JSON.parse(localStorage.getItem('cb_custom_tokens') || '[]');
+    if (!saved.find(x => x.chainId === chainId && x.addr.toLowerCase() === t.addr.toLowerCase())) {
+       saved.push({ chainId, ...t, persistedBySwap: true });
+       localStorage.setItem('cb_custom_tokens', JSON.stringify(saved));
+    }
+  } catch(e){}
+}
+function loadCustomTokens() {
+  try {
+    let saved = JSON.parse(localStorage.getItem('cb_custom_tokens') || '[]');
+    saved.forEach(t => {
+       if(!TOKENS[t.chainId]) TOKENS[t.chainId] = [];
+       if(!TOKENS[t.chainId].find(x => x.addr.toLowerCase() === t.addr.toLowerCase())) {
+          TOKENS[t.chainId].push(t);
+       }
+    });
+  } catch(e){}
+}
+function removeCustomTok(e, chainId, addr) {
+  e.stopPropagation();
+  try {
+    let saved = JSON.parse(localStorage.getItem('cb_custom_tokens') || '[]');
+    saved = saved.filter(x => !(x.chainId === chainId && x.addr.toLowerCase() === addr.toLowerCase()));
+    localStorage.setItem('cb_custom_tokens', JSON.stringify(saved));
+    if(TOKENS[chainId]) {
+      TOKENS[chainId] = TOKENS[chainId].filter(x => x.addr.toLowerCase() !== addr.toLowerCase());
+    }
+    document.getElementById('tok-search').dispatchEvent(new Event('input'));
+  } catch(err){}
+}
+
 function pickTok(addr, sym, name, dec, logo, resolvedToken=null){
   const chainId=tokModalFor==='from'?fromChainId:toChainId;
   if(!isValidAddr(addr)&&addr!==NATIVE){ closeTokModal(); return; }
@@ -2471,10 +2354,11 @@ function pickTok(addr, sym, name, dec, logo, resolvedToken=null){
   let t=(TOKENS[chainId]||[]).find(x=>x.addr.toLowerCase()===addr.toLowerCase());
   if(!t){
     if(!sym){ closeTokModal(); return; }
-    // Custom token — build and store so tokIconEl can use logo
+    // Custom token - build and store so tokIconEl can use logo
     t={ ...(resolvedToken||{}), addr:addr.toLowerCase(), sym, name:name||sym, dec:Number(dec), cmc:0, logo:logo||null, custom:true, searchOnly:true };
     if(!TOKENS[chainId]) TOKENS[chainId]=[];
     TOKENS[chainId].push(t);
+    saveCustomToken(chainId, t);
   } else if(logo && !t.logo) {
     t.logo = logo; // update with logo if now available
   }
@@ -2524,13 +2408,17 @@ function toggleHist(){
 function timeAgo(ts){const seconds=Math.floor((Date.now()-Number(ts||Date.now()))/1000);if(seconds<60)return`${seconds}s ago`;if(seconds<3600)return`${Math.floor(seconds/60)}m ago`;if(seconds<86400)return`${Math.floor(seconds/3600)}h ago`;return`${Math.floor(seconds/86400)}d ago`;}
 function renderHistory(){
   const list=document.getElementById('hist-list');if(!list)return;
-  if(!txHistory.length){list.innerHTML='<div class="hist-empty">No bridge transactions yet</div>';return;}
-  const statusMeta={confirmed:['ok','✓ Completed'],partial:['err','⚠ Partial'],refunded:['err','↩ Refunded'],failed:['err','✗ Failed'],pending:['pending','⏳ Pending']};
-  list.innerHTML=txHistory.map(item=>{
+  const isSwap = fromChainId === toChainId;
+  const filtered = txHistory.filter(item => isSwap ? item.fromChainId === item.toChainId : item.fromChainId !== item.toChainId);
+  const meta = document.getElementById('hist-meta');
+  if (meta) meta.textContent = `${filtered.length} transaction${filtered.length === 1 ? '' : 's'}`;
+  if(!filtered.length){list.innerHTML=`<div class="hist-empty">No ${isSwap ? 'swap' : 'bridge'} transactions yet</div>`;return;}
+  const statusMeta={confirmed:['ok','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M20 6L9 17l-5-5"></path></svg><span style="vertical-align:middle;">Completed</span>'],partial:['err','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span style="vertical-align:middle;">Partial</span>'],refunded:['err','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg><span style="vertical-align:middle;">Refunded</span>'],failed:['err','<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span style="vertical-align:middle;">Failed</span>'],pending:['pending','<div class="tx-premium-spinner" style="width:10px;height:10px;border-width:2px;margin:0 4px 0 0;box-shadow:none;display:inline-block;vertical-align:middle;"></div><span style="vertical-align:middle;">Pending</span>']};
+  list.innerHTML=filtered.map(item=>{
     const [cls,label]=statusMeta[item.status]||statusMeta.pending;
-    const source=item.explorer&&isValidTxHash(item.hash)?`<a class="hi-link" href="${esc(item.explorer)}/tx/${esc(item.hash)}" target="_blank" rel="noopener noreferrer">Source tx ↗</a>`:'';
+    const source=item.explorer&&isValidTxHash(item.hash)?`<a class="hi-link" href="${esc(item.explorer)}/tx/${esc(item.hash)}" target="_blank" rel="noopener noreferrer">Source tx ?</a>`:'';
     const toNet=NETWORKS.find(net=>net.id===Number(item.toChainId));
-    const destination=toNet&&isValidTxHash(item.destinationHash)?`<a class="hi-link" href="${esc(toNet.explorer)}/tx/${esc(item.destinationHash)}" target="_blank" rel="noopener noreferrer">Destination tx ↗</a>`:'';
+    const destination=toNet&&isValidTxHash(item.destinationHash)?`<a class="hi-link" href="${esc(toNet.explorer)}/tx/${esc(item.destinationHash)}" target="_blank" rel="noopener noreferrer">Destination tx ?</a>`:'';
     const lifi=/^https:\/\//i.test(String(item.lifiExplorerLink||''))?`<a class="hi-link" href="${esc(item.lifiExplorerLink)}" target="_blank" rel="noopener noreferrer">LI.FI ↗</a>`:'';
     const check=item.status==='pending'?`<button class="hi-check" onclick="checkBridgeNow('${esc(item.hash)}')">Check status</button>`:'';
     const details=item.message?`<div class="hi-detail">${esc(item.message)}</div>`:'';
@@ -2539,7 +2427,7 @@ function renderHistory(){
 }
 
 // ═══════════════════════════════════════════
-// COMET ANIMATION — follows bridge card border
+// COMET ANIMATION - follows bridge card border
 // ═══════════════════════════════════════════
 function startComets(){
   const canvas=document.getElementById('comet-canvas');
@@ -2607,95 +2495,3 @@ document.addEventListener('keydown',event=>{
   document.body.className=s;
   updateThemeIcon();
 })();
-</script>
-<section class="seo-section" aria-label="About this page">
-  <div class="seo-inner">
-    <h1 class="seo-h1">Cross-Chain Bridge Aggregator</h1>
-    <div class="seo-cols">
-      <div class="seo-col">
-        <h2 class="seo-h2">About Coin Blog Bridge</h2>
-        <h3 class="seo-h3">Current LI.FI Routes</h3>
-        <p class="seo-p">Compare the bridge and exchange routes currently available through LI.FI for the selected transfer.</p>
-        <h3 class="seo-h3">Best Route Selection</h3>
-        <p class="seo-p">Routes are ordered by estimated route cost. The interface shows route gas, protocol or exchange fees, minimum output, and estimated time. Token approval gas may be additional.</p>
-      </div>
-      <div class="seo-col">
-        <h2 class="seo-h2">Features</h2>
-        <h3 class="seo-h3">0% Coin Blog Fee</h3>
-        <p class="seo-p">Coin Blog adds no interface fee. Network, bridge, exchange, and token approval costs remain applicable.</p>
-        <h3 class="seo-h3">Real-Time Status</h3>
-        <p class="seo-p">Transfer history distinguishes completed, partial, refunded, failed, and pending outcomes and can resume status checks after a reload.</p>
-      </div>
-    </div>
-  </div>
-</section>
-<script>
-(function(){
-  var saved=localStorage.getItem('coinblog-theme')||'light';
-  document.body.className=saved;
-  function setIco(){
-    var d=document.body.classList.contains('dark');
-    var el=document.getElementById('theme-ico');
-    if(!el) return;
-    el.innerHTML=d
-      ?'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
-      :'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-  }
-  document.addEventListener('DOMContentLoaded', setIco);
-})();
-</script>
-<script>
-(function(){
-  var fromDash = sessionStorage.getItem('coinblogReturn') === 'dashboard';
-  var btn = document.querySelector('a.back-btn');
-  if (!btn) return;
-  if (fromDash) {
-    btn.href = '/dashboard';
-    btn.innerHTML = '&#8592; Dashboard';
-    btn.style.borderColor = 'rgba(0,220,130,0.4)';
-    btn.style.color = '#00dc82';
-    btn.style.background = 'rgba(0,220,130,0.07)';
-  }
-})();
-</script>
-<!-- Coin shell nav dropdown helpers -->
-<script>
-(function(){
-  if(window.__coinShellNavReady) return;
-  window.__coinShellNavReady = true;
-  window.toggleUtilitiesDD = function(e){
-    if(e) e.stopPropagation();
-    var dd = document.getElementById('utilities-dd');
-    var an = document.getElementById('analytics-dd');
-    if(an) an.classList.remove('open');
-    if(dd) dd.classList.toggle('open');
-  };
-  window.toggleAnalyticsDD = function(e){
-    if(e) e.stopPropagation();
-    var dd = document.getElementById('analytics-dd');
-    var ut = document.getElementById('utilities-dd');
-    if(ut) ut.classList.remove('open');
-    if(dd) dd.classList.toggle('open');
-  };
-  document.addEventListener('click', function(e){
-    if(!e.target.closest('.nav .nl-wrap')){
-      document.getElementById('analytics-dd')?.classList.remove('open');
-      document.getElementById('utilities-dd')?.classList.remove('open');
-    }
-  });
-})();
-</script>
-
-<footer class="site-footer">
-  <a href="/about">About</a>
-  <a href="/articles">Articles</a>
-  <a href="/shorts">Short News</a>
-  <a href="/contact">Contact</a>
-  <a href="/privacy-policy">Privacy Policy</a>
-  <a href="/editorial-policy">Editorial Policy</a>
-  <a href="/disclaimer">Disclaimer</a>
-  <a href="/data-license">Data License</a>
-  <a href="/feed.xml">RSS</a>
-</footer>
-</body>
-</html>

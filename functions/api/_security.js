@@ -24,7 +24,7 @@ export function getCorsHeaders(request, methods = 'GET, OPTIONS', extra = {}) {
     'X-Content-Type-Options': 'nosniff',
     ...extra,
   };
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && (ALLOWED_ORIGINS.has(origin) || origin.endsWith('.pages.dev'))) {
     headers['Access-Control-Allow-Origin'] = origin;
   }
   return headers;
@@ -32,7 +32,7 @@ export function getCorsHeaders(request, methods = 'GET, OPTIONS', extra = {}) {
 
 export function rejectDisallowedOrigin(request, methods = 'GET, OPTIONS') {
   const origin = request.headers.get('origin');
-  if (!origin || ALLOWED_ORIGINS.has(origin)) return null;
+  if (!origin || ALLOWED_ORIGINS.has(origin) || origin.endsWith('.pages.dev')) return null;
   return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
     status: 403,
     headers: getCorsHeaders(request, methods),

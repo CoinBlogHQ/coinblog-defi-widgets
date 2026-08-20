@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<!-- SEO -->
+<meta name="description" content="Universal crypto swap and cross-chain bridge aggregator. Compare rates across 15+ EVM networks with 0% platform fee, anti-scam protection, and instant routing.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Coin Blog">
+<link rel="canonical" href="https://coinbloghq.com/exchange">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Coin Blog">
+<meta property="og:title" content="Coin Blog - Universal Swap & Cross-Chain Bridge">
+<meta property="og:description" content="Universal crypto swap and cross-chain bridge aggregator. Compare rates across 15+ EVM networks with 0% platform fee, anti-scam protection, and instant routing.">
+<meta property="og:image" content="https://coinbloghq.com/og/bridge.svg">
+<meta property="og:url" content="https://coinbloghq.com/exchange">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@coinblogHQ">
+<meta name="twitter:title" content="Coin Blog - Universal Swap & Cross-Chain Bridge">
+<meta name="twitter:description" content="Universal crypto swap and cross-chain bridge aggregator. Compare rates across 15+ EVM networks with 0% platform fee, anti-scam protection, and instant routing.">
+<meta name="twitter:image" content="https://coinbloghq.com/og/bridge.svg">
+<meta name="google-site-verification" content="Bls42SX0zZ32u0nEJwXrCbu95draTurHG60C3csoNeU">
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Coin Blog - Universal Swap & Cross-Chain Bridge</title>
+<link rel="icon" type="image/png" href="/theme/assets/coin-blog-icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme/insights.css?v=slow-ticker-20260610">
+<link rel="stylesheet" href="/theme/readability.css?v=manrope-20260611">
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+    if (!/^(www\.)?primus-stat\.xyz$/i.test(c.location.hostname)) return;
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "wzcyblly4d");
+</script>
+<style>
+/* ========================================================================
+   Coin Bridge - editorial shell, unified with homepage & dashboard
+   Preserves bridge JS hooks: .open .hidden .selected .active .err .ok
+   .best-badge .show .done .pending .light .dark
+   ======================================================================== */
+/* Palette, reset, fonts and shared shell come from /insights/insights.css + readability.css.
+   Only bridge-specific accent vars kept here. */
+:root{--coin-blue:#2479d4}
+body.light{--blue:var(--coin-blue)}
+body.dark{--blue:#7cc4ff}
+html,body{overflow-x:hidden}
+body{min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3,.display,.brand-name,.wpm-title,.modal-title{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
+
+/* Background + nav shell now inherited from /insights/insights.css */
+
+/* ===== Main wrap ===== */
+#comet-canvas{display:none}
+.main{position:relative;z-index:1;width:100%;max-width:580px;margin:0 auto;padding:36px clamp(8px,3vw,20px) 60px;display:flex;flex-direction:column;align-items:center;flex:1 0 auto}
+
+/* ===== Bridge card ===== */
+.bridge-wrap{position:relative;width:100%}
+.bridge-glow{display:none}
+.bridge-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;position:relative}
+.light .bridge-card{box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 2px 6px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08)}
+.dark .bridge-card{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 4px 16px rgba(0,0,0,.4),0 14px 36px rgba(0,0,0,.25)}
+.bridge-card-inner{padding:18px 16px 16px}
+
+/* ===== Chain selectors ===== */
+.chain-row{display:flex;align-items:stretch;gap:8px;margin-bottom:6px}
+.chain-box{flex:1;background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;transition:border-color .2s}
+.light .chain-box{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
+.dark .chain-box{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.2)}
+.chain-box:focus-within{border-color:rgba(245,181,27,.45)}
+.cbox-label,.ta-label,.rx-label,.fee-title,.routes-label,.slip-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.chain-sel-btn{font:inherit;color:inherit;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-md);padding:9px 12px;cursor:pointer;transition:all .15s;width:100%}
+.chain-sel-btn:hover{border-color:rgba(245,181,27,.55)}
+.chain-icon{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.chain-name-txt{font-size:13px;font-weight:700;color:var(--text)}
+.chain-caret,.tok-caret{margin-left:auto;color:var(--text3);font-size:10px}
+.chain-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;padding:0 2px}
+.arrow-btn{width:38px;height:38px;border-radius:var(--radius-md);background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s}
+.light .arrow-btn{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.06)}
+.dark .arrow-btn{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 1px 4px rgba(0,0,0,.2)}
+.arrow-btn:hover{border-color:var(--coin-gold);transform:rotate(180deg);color:var(--coin-gold)}
+
+/* ===== Send / Receive boxes ===== */
+.token-amount-row,.receive-box{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;transition:border-color .2s;margin-bottom:4px}
+.light .token-amount-row,.light .receive-box{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
+.dark .token-amount-row,.dark .receive-box{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.2)}
+.token-amount-row:focus-within{border-color:rgba(245,181,27,.45)}
+.ta-row,.rx-row{display:flex;align-items:center;gap:10px}
+.tok-sel-btn,.rx-tok-btn{font:inherit;color:inherit;display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 12px;cursor:pointer;transition:all .15s;flex-shrink:0;min-width:128px}
+.tok-sel-btn:hover,.rx-tok-btn:hover{border-color:rgba(245,181,27,.55)}
+.tok-icon{width:28px;height:28px;border-radius:50%;object-fit:cover}
+.tok-sym{font-size:14px;font-weight:800;color:var(--text)}
+.amt-input{flex:1;background:none;border:none;outline:none;font-family:var(--display);font-weight:400;font-size:30px;color:var(--text);text-align:right;width:100%;min-width:0;-moz-appearance:textfield;letter-spacing:-.6px}
+.amt-input::-webkit-outer-spin-button,.amt-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.amt-input::placeholder{color:var(--text3)}
+.ta-bottom,.rx-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.usd-val,.rx-usd,.bal-txt,.bal-val{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.bal-val{color:var(--text);font-weight:600}
+.bal-row{display:flex;align-items:center;gap:6px}
+.pct-row{display:flex;gap:5px;margin-top:8px}
+.pct-btn{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.pct-btn:hover{border-color:var(--coin-gold);color:var(--accent)}
+.rx-amount{flex:1;font-family:var(--display);font-weight:400;font-size:30px;color:var(--text);text-align:right;letter-spacing:-.6px}
+
+/* ===== Routes ===== */
+.routes-section{margin-top:10px}
+.routes-label{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.routes-loading{display:flex;align-items:center;gap:10px;padding:16px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-md);font-family:var(--mono);font-size:12px;color:var(--text2)}
+.spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--coin-gold);animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.route-card{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(110px,.8fr) auto;align-items:center;column-gap:12px;row-gap:8px;padding:12px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .2s;margin-bottom:6px;position:relative;overflow:hidden}
+.light .route-card{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.05)}
+.dark .route-card{box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 4px rgba(0,0,0,.15)}
+.route-card:hover{border-color:rgba(245,181,27,.45);transform:translateY(-1px)}
+.route-card.selected{border-color:var(--coin-gold);background:#fffaeb}
+.dark .route-card.selected{background:rgba(245,181,27,.08)}
+.route-card.best-badge::before{content:'BEST';position:absolute;top:-1px;left:12px;font-family:var(--mono);font-size:9px;font-weight:800;background:var(--coin-green);color:#fff;padding:2px 7px;border-radius:0 0 6px 6px;letter-spacing:.5px}
+.rc-bridge{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.rc-bridge>div{min-width:0;flex:1}
+.rc-bridge-icon{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--surf3);flex-shrink:0}
+.rc-bridge-name{display:block;font-size:13px;font-weight:700;color:var(--text);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-mid{min-width:0;text-align:right}
+.rc-amount{font-size:16px;font-weight:800;color:var(--text);line-height:1.15;overflow-wrap:anywhere}
+.rc-usd{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap}
+.rc-right{text-align:right;min-width:96px;max-width:112px}
+.rc-time{font-family:var(--mono);font-size:11px;color:var(--blue);font-weight:700;white-space:nowrap}
+.rc-fee{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:3px;white-space:nowrap}
+.rc-tags{display:flex;gap:4px;margin-top:4px;justify-content:flex-end;flex-wrap:wrap}
+.rc-tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(245,181,27,.12);border:1px solid rgba(245,181,27,.28);color:var(--accent);white-space:nowrap}
+.rc-tag.tag-fast{background:rgba(36,121,212,.12);border-color:rgba(36,121,212,.28);color:var(--blue)}
+.rc-tag.tag-safe{background:rgba(18,166,106,.12);border-color:rgba(18,166,106,.28);color:var(--green)}
+@media(max-width:780px){.route-card{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:'bridge right' 'mid right';align-items:start}.rc-bridge{grid-area:bridge}.rc-mid{grid-area:mid;padding-left:34px}.rc-right{grid-area:right;min-width:88px;max-width:96px}.rc-amount{font-size:15px}}
+@media(max-width:520px){.route-card{grid-template-columns:1fr;grid-template-areas:'bridge' 'mid' 'right'}.rc-mid,.rc-right{text-align:left;padding-left:34px}.rc-right{max-width:none;min-width:0}.rc-tags{justify-content:flex-start}}
+
+/* ===== Slippage ===== */
+.slip-row{display:flex;align-items:center;gap:6px;padding:10px 2px 4px;flex-wrap:wrap}
+.slip-btn{font-family:var(--mono);font-size:12px;padding:4px 11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.slip-btn.active{background:rgba(245,181,27,.12);border-color:rgba(245,181,27,.5);color:var(--accent)}
+.slip-custom{font-family:var(--mono);font-size:12px;width:68px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surf2);color:var(--text);outline:none;text-align:center;-moz-appearance:textfield}
+.slip-custom::-webkit-outer-spin-button,.slip-custom::-webkit-inner-spin-button{-webkit-appearance:none}
+.slip-custom:focus{border-color:var(--coin-gold)}
+
+/* ===== Fee section ===== */
+.fee-section{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-top:10px}
+.light .fee-section{box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 1px 3px rgba(0,0,0,.04)}
+.fee-row{display:flex;justify-content:space-between;margin-bottom:5px;gap:8px}
+.fee-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border)}
+.fee-key,.fee-val{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.fee-val{color:var(--text);text-align:right}
+
+/* ===== Bridge button ===== */
+.bridge-btn{width:100%;padding:15px;border-radius:var(--radius-lg);border:none;font-family:var(--font);font-size:15px;font-weight:800;color:#fff;cursor:pointer;margin-top:12px;transition:all .2s;letter-spacing:-.2px}
+.bridge-btn.ready{background:linear-gradient(135deg,var(--coin-gold),var(--coin-orange))}
+.bridge-btn.ready:hover{opacity:.95;transform:translateY(-2px);box-shadow:0 10px 28px rgba(245,181,27,.32)}
+.bridge-btn.approve{background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff;}
+.bridge-btn.approve:hover{opacity:.95;transform:translateY(-2px);box-shadow:0 10px 28px rgba(245,158,11,.32)}
+.bridge-btn:disabled{background:var(--surf3);color:var(--text3);cursor:not-allowed}
+.bridge-btn.loading{background:rgba(245,181,27,.25);cursor:not-allowed}
+.status-msg{text-align:center;font-family:var(--mono);font-size:12px;margin-top:10px;min-height:18px;color:var(--text2)}
+.status-msg.err{color:var(--red)}
+.status-msg.ok{color:var(--green)}
+.status-msg.warn{color:var(--yellow)}
+
+/* ===== Progress tracker ===== */
+.progress-wrap{margin-top:12px;padding:14px;background:rgba(245,181,27,.08);border:1px solid rgba(245,181,27,.28);border-radius:var(--radius-md);display:none}
+.progress-wrap.show{display:block}
+.prog-title{font-family:var(--mono);font-size:12px;color:var(--accent);margin-bottom:10px;font-weight:700}
+.prog-steps{display:flex;align-items:center;gap:6px}
+.prog-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.prog-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s}
+.prog-dot.done{background:var(--coin-green);border-color:var(--coin-green);color:#fff}
+.prog-dot.active{background:rgba(245,181,27,.22);border-color:var(--coin-gold);animation:prog-pulse 1s infinite}
+.prog-dot.pending{background:transparent;border-color:var(--border)}
+.prog-dot.failed{background:rgba(239,68,68,.14);border-color:#ef4444;color:#ef4444}
+@keyframes prog-pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,181,27,.45)}50%{box-shadow:0 0 0 6px rgba(245,181,27,0)}}
+.prog-label{font-family:var(--mono);font-size:11px;color:var(--text2);text-align:center}
+.prog-line{flex:1;height:2px;background:var(--border);border-radius:1px;margin-bottom:16px}
+.prog-line.done{background:var(--coin-green)}
+.tx-link{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:12px}
+.tx-link:hover{text-decoration:underline}
+
+/* ===== Wallet picker modal (.wpm-* hooks preserved for bridge JS) ===== */
+.wpm-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,32,.62);backdrop-filter:blur(16px)}
+.wpm-overlay.hidden{display:none!important}
+.wpm-box{position:relative;background:var(--surf);border:1px solid rgba(245,181,27,.28);border-radius:22px;padding:32px 28px;width:420px;max-width:92vw;box-shadow:0 32px 64px rgba(0,0,0,.32);animation:wpmPop .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes wpmPop{from{opacity:0;transform:scale(.93) translateY(14px)}to{opacity:1;transform:none}}
+.wpm-logo{width:64px;height:64px;border-radius:16px;background:transparent;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;filter:drop-shadow(0 6px 14px rgba(245,181,27,.28))}
+.wpm-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.wpm-title{font-size:24px;color:var(--text);text-align:center;margin-bottom:6px}
+.wpm-sub{font-family:var(--mono);font-size:13px;color:var(--text2);text-align:center;margin-bottom:22px}
+.wpm-status{font-family:var(--mono);font-size:12px;text-align:center;min-height:18px;margin-bottom:10px;color:var(--text2)}
+.wpm-status.err{color:var(--red)}
+.wpm-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.wpm-wallet{display:flex;align-items:center;gap:13px;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .15s;width:100%;text-align:left;font-family:var(--font)}
+.wpm-wallet:hover{border-color:rgba(245,181,27,.5);background:#fffaeb;transform:translateY(-1px)}
+.dark .wpm-wallet:hover{background:rgba(245,181,27,.08)}
+.wpm-wicon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:18px;padding:4px}
+.wpm-wname{font-size:14px;font-weight:800;color:var(--text)}
+.wpm-wdesc{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
+.wpm-badge{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(245,181,27,.16);color:#a05f00;white-space:nowrap}
+.dark .wpm-badge{color:var(--coin-gold)}
+.wpm-note{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;line-height:1.6}
+.wpm-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:14px;font-weight:700}
+.wpm-close:hover{color:var(--text);border-color:var(--coin-gold);background:rgba(245,181,27,.08)}
+
+/* ===== Chain / Token selector modals ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(17,24,32,.62);backdrop-filter:blur(14px);z-index:400;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex;animation:mfadeIn .2s ease}
+@keyframes mfadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surf);border:1px solid var(--border);border-radius:22px;padding:24px 22px 26px;width:100%;max-width:460px;max-height:78vh;display:flex;flex-direction:column;position:relative;animation:modalPop .22s ease}
+.dark .modal{box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.light .modal{box-shadow:0 24px 64px rgba(0,0,0,.18)}
+@keyframes modalPop{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-title{font-size:20px;color:var(--text)}
+.modal-subtitle{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
+.modal-close{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.modal-close:hover{color:var(--text)}
+.modal-search{width:100%;padding:11px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surf2);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;margin-bottom:12px}
+.modal-search::placeholder{color:var(--text3)}
+.modal-search:focus{border-color:var(--coin-gold)}
+.chain-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;overflow-y:auto;scrollbar-width:thin}
+.chain-grid-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--surf2);cursor:pointer;transition:all .15s}
+.chain-grid-item:hover{border-color:rgba(245,181,27,.5)}
+.chain-grid-item.active{background:rgba(245,181,27,.1);border-color:var(--coin-gold)}
+.cgi-icon{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0}
+.cgi-name{font-size:13px;font-weight:700;color:var(--text)}
+.cgi-sym{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.tok-list{overflow-y:auto;flex:1;scrollbar-width:thin}
+.tok-item{display:flex;align-items:center;gap:13px;padding:10px;border-radius:var(--radius-md);cursor:pointer;transition:background .15s}
+.tok-item:hover{background:var(--surf2)}
+.tok-item-icon{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--surf3)}
+.tok-info{flex:1}
+.tok-sym2{font-size:14px;font-weight:800;color:var(--text)}
+.tok-name2{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:2px}
+.tok-bal2{font-family:var(--mono);font-size:12px;color:var(--text2);text-align:right}
+.tok-bal2.hasbal{color:var(--green);font-weight:700}
+
+/* ===== History ===== */
+.hist-wrap{width:100%;margin-top:14px;background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;position:relative;z-index:3}
+.light .hist-wrap{box-shadow:0 1px 0 rgba(255,255,255,.95) inset,0 2px 6px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.05)}
+.dark .hist-wrap{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 2px 10px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.2)}
+.hist-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;transition:background .15s;user-select:none}
+.hist-header:hover{background:var(--surf2)}
+.hist-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);flex:1}
+.hist-meta{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.hist-caret{color:var(--text3);font-size:12px;transition:transform .2s}
+.hist-caret.open{transform:rotate(180deg)}
+.hist-body{border-top:1px solid var(--border)}
+.hist-empty{padding:24px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--text2)}
+.hist-list{max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.hist-item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .15s}
+.hist-item:hover{background:var(--surf2)}
+.hist-item:last-child{border-bottom:none}
+.hi-pair{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.hi-detail{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.hi-right{text-align:right}
+.hi-status{font-family:var(--mono);font-size:11px;margin-bottom:3px}
+.hi-status.ok{color:var(--green)}
+.hi-status.pending{color:var(--yellow)}
+.hi-status.err{color:var(--red)}
+.hi-link{font-family:var(--mono);font-size:11px;color:var(--accent);text-decoration:none}
+.hi-link:hover{text-decoration:underline}
+.hi-time{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px}
+.hist-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-top:1px solid var(--border)}
+.hist-clear-btn{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:7px;border:1px solid rgba(190,30,45,.3);background:transparent;color:var(--red);cursor:pointer;transition:all .15s}
+.hist-clear-btn:hover{background:rgba(190,30,45,.1)}
+.hist-note{font-family:var(--mono);font-size:10px;color:var(--text3)}
+
+/* ===== SEO section ===== */
+.seo-section{width:100%;margin-top:24px;padding:36px 0 48px;border-top:1px solid var(--border);position:relative;z-index:1;content-visibility:auto;contain-intrinsic-size:1px 520px}
+.seo-inner{max-width:960px;margin:0 auto;padding:0 20px}
+.seo-h1{font-family:var(--display);font-size:clamp(22px,3vw,30px);color:var(--text);margin-bottom:24px;letter-spacing:-.4px}
+.seo-cols{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.seo-col{}
+.seo-h2{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.seo-h3{font-family:var(--font);font-size:14px;font-weight:800;color:var(--text);margin:14px 0 4px;letter-spacing:-.1px}
+.seo-p{font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--text2);margin-bottom:0}
+@media(max-width:640px){.seo-cols{grid-template-columns:1fr;gap:18px}}
+
+/* ===== Mobile (bridge widgets) ===== */
+@media(max-width:760px){
+  .main{padding:24px 8px 36px}
+  .bridge-card-inner{padding:14px 12px 12px}
+  .chain-row{flex-direction:column}
+  .chain-arrow{flex-direction:row;transform:rotate(90deg)}
+  .ta-row,.rx-row{flex-direction:column;align-items:stretch}
+  .tok-sel-btn,.rx-tok-btn{width:100%;min-width:0}
+  .amt-input,.rx-amount{text-align:left;font-size:36px}
+  .ta-bottom,.rx-bottom{flex-direction:column;align-items:flex-start;gap:8px}
+  .modal{max-width:100%;max-height:85vh;border-radius:18px;padding:18px 16px}
+  .wpm-box{padding:24px 18px;width:min(420px,94vw)}
+  .chain-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .seo-cols{grid-template-columns:1fr}
+}
+
+.advanced-transfer{margin:10px 0 14px;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025)}
+.advanced-transfer label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.recipient-input{width:100%;box-sizing:border-box;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:10px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;outline:none}
+.recipient-input:focus{border-color:var(--yellow)}
+.gas-toggle{display:flex!important;align-items:center;gap:9px;margin:10px 0 0!important;text-transform:none!important;letter-spacing:0!important;font-size:12px!important;cursor:pointer}
+.gas-toggle input{accent-color:var(--yellow)}
+.route-path{font-size:10px;color:var(--muted);margin-top:4px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-warning{margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);font-size:11px;color:#fbbf24}
+.hi-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:5px}
+.hi-check{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:7px;padding:4px 7px;font-size:10px;cursor:pointer}
+.hi-check:hover{color:var(--text);border-color:var(--yellow)}
+.token-risk{font-size:10px;color:#fbbf24;margin-top:3px}
+@media(max-width:620px){.advanced-transfer{padding:10px}.route-path{max-width:170px}}
+
+.flip-wrap{display:flex;justify-content:center;position:relative;height:0;z-index:5;}
+.flip-btn{width:36px;height:36px;border-radius:10px;background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;top:-18px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.flip-btn:hover{border-color:var(--accent);background:var(--surf2);transform:rotate(180deg) scale(1.05);}
+
+
+body.dark #swap-btn.approve, body.dark #bridge-btn.approve, #swap-btn.approve, #bridge-btn.approve {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+    cursor: pointer !important;
+}
+body.dark #swap-btn.approve:hover, body.dark #bridge-btn.approve:hover, #swap-btn.approve:hover, #bridge-btn.approve:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6) !important;
+}
+
+</style>
+
+
+<style id="coin-shell-fns">
+/* Functional wallet controls unique to the utility pages.
+   Shared nav, footer, palette and fonts come from /insights/insights.css. */
+.nav-right{position:relative;z-index:1001}
+.nav .conn-btn,.nav .wallet-pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:700 12.5px/1 'JetBrains Mono','Manrope',monospace;cursor:pointer;white-space:nowrap;position:relative;transition:border-color .15s,background .15s}
+.nav .conn-btn:hover,.nav .wallet-pill:hover{border-color:#f5b51b;background:rgba(245,181,27,.12)}
+.nav .wallet-pill .wdot{width:7px;height:7px;border-radius:50%;background:#12a66a;box-shadow:0 0 6px #12a66a;flex:0 0 7px}
+.nav .wallet-pill .wpill-caret{opacity:.6;font-size:9px;margin-left:2px}
+.w-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:184px;padding:6px;border-radius:12px;background:#fff;border:1px solid rgba(15,23,42,.12);box-shadow:0 18px 44px rgba(2,6,23,.24);display:none;z-index:1300}
+.dark .w-menu{background:#1a2330;border-color:rgba(255,255,255,.1);box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.w-menu.open{display:block}
+.w-menu .wm-item{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#101828;font-family:'Manrope',sans-serif;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer}
+.dark .w-menu .wm-item{color:#f3eee2}
+.w-menu .wm-item:hover{background:#fff3c4;color:#101820}
+.dark .w-menu .wm-item:hover{background:rgba(245,181,27,.12);color:#f5b51b}
+.w-menu .wm-item.wm-red{color:#be1e2d}
+.w-menu .wm-item.wm-red:hover{background:rgba(190,30,45,.12)}
+.w-menu .wm-sep{border:0;border-top:1px solid rgba(15,23,42,.08);margin:4px 0}
+.dark .w-menu .wm-sep{border-top-color:rgba(255,255,255,.08)}
+@media(max-width:760px){.nav .wallet-pill{max-width:150px;overflow:hidden;text-overflow:ellipsis} .nav .wallet-pill #w-addr-disp{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+
+.flip-wrap{display:flex;justify-content:center;position:relative;height:0;z-index:5;}
+.flip-btn{width:36px;height:36px;border-radius:10px;background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;top:-18px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.flip-btn:hover{border-color:var(--accent);background:var(--surf2);transform:rotate(180deg) scale(1.05);}
+
+
+body.dark #swap-btn.approve, body.dark #bridge-btn.approve, #swap-btn.approve, #bridge-btn.approve {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+    cursor: pointer !important;
+}
+body.dark #swap-btn.approve:hover, body.dark #bridge-btn.approve:hover, #swap-btn.approve:hover, #bridge-btn.approve:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6) !important;
+}
+
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Bridge - Coin Blog",
+  "url": "https://coinbloghq.com/bridge",
+  "description": "Compare executable cross-chain routes across LI.FI-supported EVM networks, with route costs and transfer status tracking.",
+  "isPartOf": {
+    "@type": "WebSite",
+    "url": "https://coinbloghq.com",
+    "name": "Coin Blog"
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://coinbloghq.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Bridge",
+        "item": "https://coinbloghq.com/bridge"
+      }
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Which bridges does Coin Blog aggregate?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Coin Blog Bridge uses the bridges and exchanges currently returned by LI.FI for the selected network, token, amount, sender, and recipient."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How long does a bridge transfer take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Transfer time varies by route, source-chain confirmations, destination network conditions, and the selected bridge. The route estimate is shown before confirmation and status remains available in local history."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there a fee for using Coin Blog Bridge?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Coin Blog adds no interface fee. LI.FI route estimates show route gas and protocol or exchange fees. A separate token approval transaction may require additional source-network gas."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+/* ========================================= */
+/* PREMIUM 2026 WIDGET & MODAL MASTER STYLES */
+/* ========================================= */
+
+/* Modals */
+.modal-overlay {
+    position: fixed; inset: 0; 
+    background: rgba(0, 0, 0, 0.6); 
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
+    z-index: 9999; display: none; align-items: center; justify-content: center; 
+    padding: 16px; transition: all 0.3s ease;
+}
+.modal-overlay.open { display: flex; animation: modalFadeIn 0.3s ease forwards; }
+@keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+    border-radius: 24px !important; padding: 24px !important;
+    max-width: 420px !important; width: 100% !important;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+}
+body.dark .modal { background: rgba(18, 20, 26, 0.9) !important; backdrop-filter: blur(28px); }
+body.light .modal { background: rgba(255, 255, 255, 0.95) !important; backdrop-filter: blur(28px); border-color: rgba(0,0,0,0.1) !important; }
+
+/* Main Cards */
+.swap-card, .bridge-card {
+    border-radius: 24px !important;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+body.dark .swap-card, body.dark .bridge-card {
+    background: #0a0a0c !important;
+    border: 1px solid rgba(245, 181, 27, 0.25) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0,0,0,0.8) !important;
+}
+
+/* Neon Glow Behind Cards */
+.swap-wrap, .bridge-wrap {
+    position: relative;
+    z-index: 3;
+}
+body.dark .swap-wrap::before, body.dark .bridge-wrap::before {
+    content: "";
+    position: absolute;
+    top: -50px; left: -50px; right: -50px; bottom: -50px;
+    background: radial-gradient(circle at center, rgba(245, 181, 27, 0.25) 0%, rgba(245, 181, 27, 0) 65%) !important;
+    filter: blur(50px) !important;
+    z-index: -1 !important;
+    pointer-events: none;
+    border-radius: 50%;
+    animation: pulse-glow 4s ease-in-out infinite alternate;
+}
+@keyframes pulse-glow {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(1.05); opacity: 1.3; }
+}
+
+/* Token Boxes (Inner Blocks) */
+.token-box, .chain-box, .receive-box {
+    border-radius: 16px !important;
+    transition: all 0.2s ease;
+}
+body.dark .token-box, body.dark .chain-box, body.dark .receive-box {
+    background: #15171d !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+body.dark .token-box:focus-within, body.dark .chain-box:focus-within {
+    border-color: rgba(245, 181, 27, 0.5) !important;
+    box-shadow: 0 0 20px rgba(245, 181, 27, 0.15), inset 0 2px 10px rgba(0,0,0,0.3) !important;
+    background: #1a1d24 !important;
+}
+
+/* Unified Tabs */
+.omni-tabs { display: flex !important; width: 100% !important; margin-bottom: 20px !important; background: #15171d !important;
+    border-radius: 999px !important;
+    padding: 4px !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+}
+.omni-tab { flex: 1 !important; padding: 12px 0 !important; text-align: center !important; cursor: pointer !important; border-radius: 999px !important;
+    color: var(--text3) !important;
+    font-weight: 600 !important;
+    border: none !important;
+    background: transparent !important;
+}
+.omni-tab.active {
+    background: #232730 !important;
+    color: #F5B51B !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important;
+}
+
+/* Main CTA Button */
+#swap-btn, #bridge-btn {
+    border-radius: 16px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+    transition: all 0.25s ease !important;
+    background: #1c202a !important;
+    color: var(--text2) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+}
+body.dark #swap-btn.ready, body.dark #bridge-btn.ready {
+    background: linear-gradient(135deg, #F5B51B 0%, #D49A11 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 181, 27, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+}
+body.dark #swap-btn.ready:hover, body.dark #bridge-btn.ready:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 181, 27, 0.6) !important;
+}
+
+.flip-wrap{display:flex;justify-content:center;position:relative;height:0;z-index:5;}
+.flip-btn{width:36px;height:36px;border-radius:10px;background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;top:-18px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.flip-btn:hover{border-color:var(--accent);background:var(--surf2);transform:rotate(180deg) scale(1.05);}
+
+
+body.dark #swap-btn.approve, body.dark #bridge-btn.approve, #swap-btn.approve, #bridge-btn.approve {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+    cursor: pointer !important;
+}
+body.dark #swap-btn.approve:hover, body.dark #bridge-btn.approve:hover, #swap-btn.approve:hover, #bridge-btn.approve:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6) !important;
+}
+
+</style>
+
+
+<style>
+.sec-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; display: none; font-weight: 700; align-items: center; gap: 4px; }
+.sec-badge.safe { display: flex; background: rgba(39, 174, 96, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+.sec-badge.warn { display: flex; background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
+#sec-warning-box { display: none; margin-bottom: 12px; background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.4); border-radius: 8px; padding: 12px; font-size: 13px; color: #e74c3c; line-height: 1.4; text-align: left; }
+
+.flip-wrap{display:flex;justify-content:center;position:relative;height:0;z-index:5;}
+.flip-btn{width:36px;height:36px;border-radius:10px;background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;top:-18px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.flip-btn:hover{border-color:var(--accent);background:var(--surf2);transform:rotate(180deg) scale(1.05);}
+
+
+body.dark #swap-btn.approve, body.dark #bridge-btn.approve, #swap-btn.approve, #bridge-btn.approve {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+    cursor: pointer !important;
+}
+body.dark #swap-btn.approve:hover, body.dark #bridge-btn.approve:hover, #swap-btn.approve:hover, #bridge-btn.approve:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6) !important;
+}
+
+</style>
+
+
+<style>
+.tok-remove {
+  background: none; border: none; color: var(--text3); font-size: 14px;
+  cursor: pointer; padding: 2px 6px; border-radius: 4px;
+}
+.tok-remove:hover { color: var(--red); background: rgba(239, 68, 68, 0.1); }
+
+.flip-wrap{display:flex;justify-content:center;position:relative;height:0;z-index:5;}
+.flip-btn{width:36px;height:36px;border-radius:10px;background:var(--surf);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent);transition:all .25s cubic-bezier(.34,1.56,.64,1);position:relative;top:-18px;box-shadow:0 4px 12px rgba(0,0,0,0.15);}
+.flip-btn:hover{border-color:var(--accent);background:var(--surf2);transform:rotate(180deg) scale(1.05);}
+
+
+body.dark #swap-btn.approve, body.dark #bridge-btn.approve, #swap-btn.approve, #bridge-btn.approve {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    color: #000 !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.3) !important;
+    cursor: pointer !important;
+}
+body.dark #swap-btn.approve:hover, body.dark #bridge-btn.approve:hover, #swap-btn.approve:hover, #bridge-btn.approve:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6) !important;
+}
+
+</style>
+
+</head>
+<body class="light">
+<div class="bg-wrap" aria-hidden="true"><div class="bg-grid"></div><div class="bg-orb blue"></div><div class="bg-orb pink"></div><div class="bg-orb green"></div></div>
+<nav class="nav">
+  <a class="nav-brand" href="/">
+    <img class="brand-logo-icon" src="/theme/assets/coin-blog-logo-icon.png" alt="Coin Blog" width="199" height="192">
+    <span class="brand-wordmark"><span class="brand-coin">COIN</span> <span class="brand-section">BLOG</span></span>
+  </a>
+  <div class="nav-links">
+    <div class="nl-wrap">
+      <button class="nl" onclick="toggleAnalyticsDD(event)">Analytics <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:3px;vertical-align:middle;opacity:.65"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="analytics-dd" id="analytics-dd">
+        <a class="dd-item" href="/base"><img src="https://icons.llamao.fi/icons/chains/rsz_base.jpg" alt="Base" loading="lazy" decoding="async" onerror="this.style.display='none'">Base</a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="/unichain"><img src="https://icons.llamao.fi/icons/chains/rsz_unichain.jpg" alt="Unichain" loading="lazy" decoding="async" onerror="this.style.display='none'">Unichain</a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="/robinhood-mainnet/"><img src="/theme/assets/robinhood-chain-icon.svg" alt="Robinhood" loading="lazy" decoding="async" onerror="this.style.display='none'">Robinhood</a>
+      </div>
+    </div>
+    <div class="nl-wrap">
+      <button class="nl on" onclick="toggleUtilitiesDD(event)">Utilities <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:3px;vertical-align:middle;opacity:.65"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="analytics-dd utilities-dd" id="utilities-dd">
+        <a class="dd-item" href="/dashboard">Portfolio</a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="/exchange">Exchange</a>
+        <div class="dd-sep"></div>
+        <a class="dd-item" href="/rwa">RWA</a>
+      </div>
+    </div>
+  </div>
+  <div class="nav-right" id="top-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+      <svg id="theme-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+    </button>
+    <a class="social-btn" href="https://x.com/coinblogHQ" target="_blank" rel="noopener noreferrer" aria-label="X">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.7 10.6 21.1 2h-1.8l-6.4 7.4L7.8 2H2l7.8 11.3L2 22h1.8l6.8-7.9 5.5 7.9H22l-8.3-11.4Zm-2.4 2.8-.8-1.1L4.2 3.3h2.7l5 7.1.8 1.1 6.6 9.3h-2.7l-5.3-7.4Z"/></svg>
+    </a>
+    <a class="social-btn" href="https://t.me/CoinssBlog" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.8 4.2 18.5 20c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5.9 13.5 1 12c-1.1-.3-1.1-1.1.2-1.6L20.4 3c.9-.3 1.7.2 1.4 1.2Z"/></svg>
+    </a>
+    <button class="conn-btn" id="conn-btn" type="button" onclick="connectWallet()">Connect Wallet</button>
+    <div class="wallet-pill" id="wallet-pill" style="display:none" onclick="toggleWMenu()">
+      <span class="wdot"></span>
+      <span id="w-addr-disp">0x0…0000</span>
+      <span class="wpill-caret">▾</span>
+      <div class="w-menu" id="w-menu" onclick="event.stopPropagation()">
+        <button class="wm-item" onclick="wCopy()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Address</button>
+        <button class="wm-item" onclick="wExplorer()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Explorer</button>
+        <hr class="wm-sep">
+        <button class="wm-item wm-red" onclick="wDisconnect()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg> Disconnect</button>
+      </div>
+    </div>
+  </div>
+</nav>
+<!-- Wallet picker modal (wpm-* IDs preserved for bridge JS) -->
+<div id="wpm-overlay" class="wpm-overlay hidden" role="dialog" aria-modal="true" aria-label="Connect wallet" onclick="closeWalletModal(event)">
+  <div class="wpm-box">
+    <button class="wpm-close" type="button" onclick="closeWalletModal()">✕</button>
+    <div class="wpm-logo">
+      <img src="/theme/assets/coin-blog-logo-icon.png" alt="Coin Blog" width="64" height="64">
+    </div>
+    <div class="wpm-title">Connect Wallet</div>
+    <div class="wpm-sub">Choose your wallet to continue</div>
+    <div class="wpm-status" id="wpm-status"></div>
+    <div class="wpm-list" id="wpm-list"></div>
+    <div class="wpm-note">Coin Blog never asks for your seed phrase.<br>Wallet confirmations are shown only when required.</div>
+  </div>
+</div>
+<!-- Main -->
+<div class="main">
+  <div class="bridge-wrap">
+    <div class="bridge-glow"></div>
+    <div class="bridge-card">
+      
+        
+        <div class="bridge-card-inner">
+
+        <!-- Chain selectors -->
+        <div class="chain-row">
+          <div class="chain-box">
+            <div class="cbox-label">From Network</div>
+            <button type="button" class="chain-sel-btn" onclick="openChainModal('from')" aria-label="Choose source network">
+              <div id="from-chain-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
+              <span id="from-chain-name" class="chain-name-txt">Ethereum</span>
+              <span class="chain-caret">▾</span>
+            </button>
+          </div>
+          <div class="chain-arrow">
+            <button type="button" class="arrow-btn" onclick="flipChains()" title="Flip chains" aria-label="Flip source and destination networks">⇄</button>
+          </div>
+          <div class="chain-box">
+            <div class="cbox-label">To Network</div>
+            <button type="button" class="chain-sel-btn" onclick="openChainModal('to')" aria-label="Choose destination network">
+              <div id="to-chain-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
+              <span id="to-chain-name" class="chain-name-txt">Arbitrum</span>
+              <span class="chain-caret">▾</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- You send -->
+        <div class="token-amount-row">
+          <div class="ta-label">You Send</div>
+          <div class="ta-row">
+            <button type="button" class="tok-sel-btn" onclick="openTokenModal('from')" aria-label="Choose token to send">
+              <div id="from-tok-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
+              <span class="tok-sym" id="from-tok-sym">ETH</span>
+              <div id="sell-sec-badge" class="sec-badge"></div>
+              <span class="tok-caret">▾</span>
+            </button>
+            <input class="amt-input" id="send-amt" type="text" inputmode="decimal" placeholder="0.0" oninput="onAmtInput()" autocomplete="off" aria-label="Amount to bridge">
+          </div>
+          <div class="ta-bottom">
+            <span class="usd-val" id="send-usd">≈ $0.00</span>
+            <div class="bal-row">
+              <span class="bal-txt">Balance:</span>
+              <span class="bal-val" id="send-bal">-</span>
+            </div>
+          </div>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="setPct(25)">25%</button>
+            <button class="pct-btn" onclick="setPct(50)">50%</button>
+            <button class="pct-btn" onclick="setPct(75)">75%</button>
+            <button class="pct-btn" onclick="setPct(100)">MAX</button>
+          </div>
+        </div>
+        <div id="sec-warning-box"></div>
+
+        <div class="flip-wrap">
+          <button type="button" class="flip-btn" onclick="flipTokens()" title="Flip tokens" aria-label="Flip tokens">⇅</button>
+        </div>
+
+        <!-- You receive -->
+        <div class="receive-box">
+          <div class="rx-label">You Receive (estimated)</div>
+          <div class="rx-row">
+            <button type="button" class="rx-tok-btn" onclick="openTokenModal('to')" aria-label="Choose token to receive">
+              <div id="to-tok-icon-wrap" style="display:flex;align-items:center;flex-shrink:0;"></div>
+              <span class="tok-sym" id="to-tok-sym">ETH</span>
+              <span class="tok-caret">▾</span>
+            </button>
+            <div class="rx-amount" id="receive-amt">0.0</div>
+          </div>
+          <div class="rx-bottom">
+            <span class="rx-usd" id="receive-usd">≈ $0.00</span>
+            <span class="rx-usd" id="receive-bal-wrap" style="display:none;">Balance: <span id="receive-bal">-</span></span>
+          </div>
+        </div>
+
+        <!-- Slippage -->
+        <div class="slip-row">
+          <span class="slip-lbl">Slippage:</span>
+          <button class="slip-btn active" onclick="setSlip(0.5,this)">0.5%</button>
+          <button class="slip-btn" onclick="setSlip(1,this)">1%</button>
+          <button class="slip-btn" onclick="setSlip(3,this)">3%</button>
+          <input class="slip-custom" id="slip-custom" type="text" inputmode="decimal" placeholder="Custom" min="0.01" max="5" step="0.1"
+                 onchange="setSlipCustom(this.value)">
+        </div>
+
+        <div class="advanced-transfer" id="advanced-transfer-box">
+          <label for="recipient-address">Destination recipient (optional)</label>
+          <input id="recipient-address" class="recipient-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Same as connected wallet" oninput="onRecipientChange()">
+<div id="poisoning-warning" style="display:none; margin-top:8px; background: rgba(243, 156, 18, 0.1); border: 1px solid rgba(243, 156, 18, 0.4); border-radius: 8px; padding: 10px; font-size: 12px; color: #f39c12; line-height: 1.4;">
+  ⚠️ <strong>Security Notice:</strong> You are sending funds to a different address than your connected wallet. Please double-check the recipient address to avoid loss of funds.
+</div>
+          <label class="gas-toggle"><input id="destination-gas" type="checkbox" onchange="scheduleQuote()"> Convert 1% of the transfer into destination gas, when supported</label>
+        </div>
+
+        <!-- Routes list -->
+        <div class="routes-section" id="routes-section" style="display:none;">
+          <div class="routes-label">
+            <span>Available Routes</span>
+            <span id="routes-count" style="color:var(--blue);"></span>
+          </div>
+          <div id="routes-list"></div>
+        </div>
+
+        <!-- Fee breakdown (shown when route selected) -->
+        <div class="fee-section" id="fee-section" style="display:none;">
+          <div class="fee-title">Fee Breakdown</div>
+          <div class="fee-row"><span class="fee-key">Route Gas</span><span class="fee-val" id="fee-src-gas">-</span></div>
+          <div class="fee-row"><span class="fee-key">Bridge / DEX Fees</span><span class="fee-val" id="fee-bridge">-</span></div>
+          <div class="fee-row"><span class="fee-key">Approval Gas</span><span class="fee-val" id="fee-approval">Not required</span></div>
+          <div class="fee-row"><span class="fee-key">Est. Time</span><span class="fee-val" id="fee-time" style="color:var(--blue);">-</span></div>
+          <div class="fee-row"><span class="fee-key">Coin Blog Fee</span><span class="fee-val" style="color:var(--green);font-weight:700;">0% 🎉</span></div>
+          <div class="fee-row" style="margin-bottom:0;"><span class="fee-key" style="font-weight:700;">You Receive (min)</span><span class="fee-val" id="fee-min-out" style="color:var(--yellow);font-weight:700;">-</span></div>
+        </div>
+
+        <!-- Bridge button -->
+        
+        <!-- Price Impact Consent -->
+        <div id="impact-consent-box" style="display:none; margin-top:12px; background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.4); border-radius: 8px; padding: 12px; font-size: 13px; color: #e74c3c; line-height: 1.4; text-align: left;">
+          <strong>High Price Impact Warning</strong><br>
+          This bridge route has a price impact of over 15%. You will lose a significant portion of your value.<br>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer; color:var(--text);">
+            <input type="checkbox" id="impact-consent-cb" onchange="updateBtnState()">
+            I understand the risk and wish to proceed
+          </label>
+        </div>
+
+        <button class="bridge-btn" id="bridge-btn" disabled onclick="doBridge()">Select Route</button>
+        <div class="status-msg" id="status-msg"></div>
+
+        <!-- Progress tracker -->
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="prog-title">🔗 Bridge in progress…</div>
+          <div class="prog-steps">
+            <div class="prog-step">
+              <div class="prog-dot" id="prog-0">✓</div>
+              <div class="prog-label">Approved</div>
+            </div>
+            <div class="prog-line" id="prog-line-0"></div>
+            <div class="prog-step">
+              <div class="prog-dot" id="prog-1"><div class="tx-premium-spinner" style="width:14px;height:14px;border-width:2px;margin:0;box-shadow:none;"></div></div>
+              <div class="prog-label">Sent</div>
+            </div>
+            <div class="prog-line" id="prog-line-1"></div>
+            <div class="prog-step">
+              <div class="prog-dot" id="prog-2"><div class="tx-premium-spinner" style="width:14px;height:14px;border-width:2px;margin:0;box-shadow:none;"></div></div>
+              <div class="prog-label">Bridging</div>
+            </div>
+            <div class="prog-line" id="prog-line-2"></div>
+            <div class="prog-step">
+              <div class="prog-dot" id="prog-3"><div class="tx-premium-spinner" style="width:14px;height:14px;border-width:2px;margin:0;box-shadow:none;"></div></div>
+              <div class="prog-label">Done</div>
+            </div>
+          </div>
+          <div id="prog-tx-link" style="margin-top:10px;text-align:center;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Transaction History -->
+  <div class="hist-wrap">
+    <div class="hist-header" onclick="toggleHist()">
+      <div class="hist-title"><span>🌉</span><span id="history-title-text">Bridge History</span></div>
+      <span class="hist-meta" id="hist-meta">0 transactions</span>
+      <span class="hist-caret" id="hist-caret">▾</span>
+    </div>
+    <div class="hist-body" id="hist-body" style="display:none;">
+      <div class="hist-list" id="hist-list">
+        <div class="hist-empty">No bridge transactions yet</div>
+      </div>
+      <div class="hist-footer">
+        <button class="hist-clear-btn" onclick="clearHistory()">Clear History</button>
+        <span class="hist-note">Stored locally in this browser</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chain selector modal -->
+<div class="modal-overlay" id="chain-modal-overlay" role="dialog" aria-modal="true" aria-label="Choose network" onclick="closeChainModal(event)">
+  <div class="modal" id="chain-modal">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="chain-modal-title">Select Network</div>
+        <div class="modal-subtitle" id="chain-modal-sub">Choose source network</div>
+      </div>
+      <button class="modal-close" onclick="closeChainModal()">✕</button>
+    </div>
+    <input class="modal-search" id="chain-search" placeholder="Search network…" oninput="filterChains()">
+    <div class="chain-grid" id="chain-grid"></div>
+  </div>
+</div>
+
+<!-- Token selector modal -->
+<div class="modal-overlay" id="tok-modal-overlay" role="dialog" aria-modal="true" aria-label="Choose token" onclick="closeTokModal(event)">
+  <div class="modal" id="tok-modal">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="tok-modal-title">Select Token</div>
+        <div class="modal-subtitle" id="tok-modal-sub">Loading tokens…</div>
+      </div>
+      <button class="modal-close" onclick="closeTokModal()">✕</button>
+    </div>
+    <input class="modal-search" id="tok-search" placeholder="Search name or paste address…" oninput="filterTokens()">
+    <div class="tok-list" id="tok-list"></div>
+  </div>
+</div>
+
+<script src="/vendor/walletconnect-ethereum-provider.umd.js?v=20260331-1"></script>
+<script src="/js/exchange.js"></script>
+<section class="seo-section" aria-label="About this page">
+  <div class="seo-inner">
+    <h1 class="seo-h1">Universal Swap & Cross-Chain Bridge Aggregator</h1>
+    <div class="seo-cols">
+      <div class="seo-col">
+        <h2 class="seo-h2">About Coin Blog Swap & Bridge</h2>
+        <h3 class="seo-h3">Unified DEX & Bridge Routing</h3>
+        <p class="seo-p">Trade tokens on the same blockchain or bridge across 15+ EVM networks in a single interface without switching tabs.</p>
+        <h3 class="seo-h3">Best Route Aggregation</h3>
+        <p class="seo-p">Real-time comparison across 0x Protocol, ParaSwap, and LI.FI to deliver optimal rates, minimal slippage, and lowest gas costs.</p>
+        <h3 class="seo-h3">15+ Supported EVM Networks</h3>
+        <p class="seo-p">Full support for Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, Avalanche, Unichain, Sonic, Linea, Scroll, Blast, Mantle, Mode, and Robinhood Chain.</p>
+      </div>
+      <div class="seo-col">
+        <h2 class="seo-h2">Security & Features</h2>
+        <h3 class="seo-h3">0% Platform Fee</h3>
+        <p class="seo-p">Coin Blog adds 0% fee. You pay only standard network gas and underlying DEX or bridge protocol costs.</p>
+        <h3 class="seo-h3">Anti-Scam & Honeypot Protection</h3>
+        <p class="seo-p">Real-time automated security screening identifies honeypots, malicious taxes, and unverified contracts before execution.</p>
+        <h3 class="seo-h3">Real-Time Status Tracking</h3>
+        <p class="seo-p">Live tracking distinguishes confirmed, pending, refunded, and failed states with direct blockchain explorer links.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var saved=localStorage.getItem('coinblog-theme')||'light';
+  document.body.className=saved;
+  function setIco(){
+    var d=document.body.classList.contains('dark');
+    var el=document.getElementById('theme-ico');
+    if(!el) return;
+    el.innerHTML=d
+      ?'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      :'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+  document.addEventListener('DOMContentLoaded', setIco);
+})();
+</script>
+<script>
+(function(){
+  var fromDash = sessionStorage.getItem('coinblogReturn') === 'dashboard';
+  var btn = document.querySelector('a.back-btn');
+  if (!btn) return;
+  if (fromDash) {
+    btn.href = '/dashboard';
+    btn.innerHTML = '&#8592; Dashboard';
+    btn.style.borderColor = 'rgba(0,220,130,0.4)';
+    btn.style.color = '#00dc82';
+    btn.style.background = 'rgba(0,220,130,0.07)';
+  }
+})();
+</script>
+<!-- Coin shell nav dropdown helpers -->
+<script>
+(function(){
+  if(window.__coinShellNavReady) return;
+  window.__coinShellNavReady = true;
+  window.toggleUtilitiesDD = function(e){
+    if(e) e.stopPropagation();
+    var dd = document.getElementById('utilities-dd');
+    var an = document.getElementById('analytics-dd');
+    if(an) an.classList.remove('open');
+    if(dd) dd.classList.toggle('open');
+  };
+  window.toggleAnalyticsDD = function(e){
+    if(e) e.stopPropagation();
+    var dd = document.getElementById('analytics-dd');
+    var ut = document.getElementById('utilities-dd');
+    if(ut) ut.classList.remove('open');
+    if(dd) dd.classList.toggle('open');
+  };
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.nav .nl-wrap')){
+      document.getElementById('analytics-dd')?.classList.remove('open');
+      document.getElementById('utilities-dd')?.classList.remove('open');
+    }
+  });
+})();
+</script>
+
+<footer class="site-footer">
+  <a href="/about">About</a>
+  <a href="/articles">Articles</a>
+  <a href="/shorts">Short News</a>
+  <a href="/contact">Contact</a>
+  <a href="/privacy-policy">Privacy Policy</a>
+  <a href="/editorial-policy">Editorial Policy</a>
+  <a href="/disclaimer">Disclaimer</a>
+  <a href="/data-license">Data License</a>
+  <a href="/feed.xml">RSS</a>
+</footer>
+</body>
+</html>
+

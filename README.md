@@ -1,28 +1,31 @@
-# CoinBlogHQ Swap & Bridge
+# CoinBlogHQ Universal Exchange (Swap & Bridge)
 
-This repository contains the source code for the CoinBlogHQ Swap and Bridge aggregators.
+Open-source DeFi Exchange and Cross-Chain Bridge aggregator widget from [Coin Blog](https://coinbloghq.com).
 
 ## Architecture
 
 The system is built with a **Zero-Dependency Vanilla JS** frontend and a secure **Edge Middleware** backend using Cloudflare Workers.
 
 ### Frontend
-- `public/swap.html`: Token swap interface supporting 15+ EVM networks. Uses EIP-6963 for wallet discovery.
-- `public/bridge.html`: Cross-chain bridge interface.
-- No heavy frameworks (React, Vue) are used, ensuring maximum performance (100/100 PageSpeed) and security.
+- `public/exchange.html`: Unified Swap & Cross-Chain Bridge interface supporting 15+ EVM networks.
+- `public/js/exchange.js`: Core routing brain that dynamically selects same-chain DEX aggregators (0x Protocol, ParaSwap) or cross-chain bridge protocols (LI.FI, Across, Relay).
+- Built-in GoPlus Anti-Scam security scanner and token safety checks.
+- EIP-6963 multi-wallet auto-discovery and WalletConnect v2 integration.
+- Exact allowance approvals (no infinite approval risks).
 
 ### Backend (Cloudflare Workers)
-The backend acts as a secure shield between the client and aggregator APIs (0x, LI.FI, ParaSwap, OpenOcean).
-- `functions/api/swap-quote.js`: Fetches and validates swap quotes.
-- `functions/api/_bridge-common.js`: Contains shared bridge logic and cryptographic functions (HMAC).
-- `functions/api/_evm-rpc.js`: Provides canonical RPC endpoints for balance and gas checks.
-- `functions/api/_security.js`: Handles CORS, rate limiting, and input validation.
+The backend acts as a secure shield between the client and aggregator APIs.
+- `functions/api/swap-quote.js`: 0x Protocol v2 proxy with parameter validation.
+- `functions/api/paraswap-quote.js`: ParaSwap / Velora DEX proxy with on-chain simulation.
+- `functions/api/bridge-routes.js` & `bridge-step.js`: LI.FI aggregator proxy with HMAC cryptographic signing.
+- `functions/api/_bridge-common.js`: Cryptographic route step signing (HMAC-SHA256).
+- `functions/api/_security.js`: Origin verification, CORS policy, and IP rate limiting.
 
 ### Security Features
-- **Zero-Revert Policy**: The backend simulates transactions before presenting them to the user.
-- **HMAC Signatures**: Route steps are cryptographically signed to prevent manipulation.
-- **Strict Validation**: All inputs and API responses are sanitized.
-- **API Key Protection**: All third-party API keys are stored securely in environment variables on the edge.
+- **Zero-Revert Policy**: On-chain RPC simulation before user signature.
+- **HMAC Signatures**: Route steps and recipient addresses are cryptographically sealed.
+- **Anti-Honeypot Scanner**: Real-time bytecode analysis and tax detection.
+- **Exact Approvals**: Grants allowance only for the exact transaction amount.
 
 ## Setup
 
