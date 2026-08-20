@@ -1,25 +1,25 @@
-# Technical Whitepaper: CoinBlog Universal Exchange (Swap & Bridge)
+# Технический Whitepaper: CoinBlog Universal Exchange (Swap & Bridge)
 
-**Version:** 2.0  
-**Status:** Production  
-**Architecture:** Non-Custodial Multi-DEX & Cross-Chain Aggregator  
-**Stack:** Vanilla JavaScript (ES2022, Zero-Dependency), Cloudflare Pages / Workers Edge Middleware, EIP-6963, WalletConnect v2  
-
----
-
-## 1. Executive Summary & Architecture Philosophy
-
-**CoinBlog Universal Exchange** is an institutional-grade, zero-dependency decentralized liquidity and cross-chain routing engine that unifies same-chain DEX swaps and cross-chain bridging across 15+ EVM networks into a single interface.
-
-### Core Architectural Principles:
-1. **Zero-Dependency Vanilla JS:** Zero heavy frameworks (React, Next.js, Vue) and zero runtime node dependencies. The client bundle is under 80 KB, loads in under 150ms, and maintains a perfect 100/100 Google PageSpeed score.
-2. **Strict Non-Custodial & Exact Allowance:** The platform never touches user private keys. Token approvals are granted strictly for the exact transaction amount (`amountHex = BigInt(amount)`), completely eliminating infinite approval drain risks (`Max Uint256`).
-3. **Edge Shielding & HMAC Cryptography:** Direct access to third-party aggregator APIs is protected by Cloudflare Workers. All cross-chain route steps are cryptographically signed with HMAC-SHA256 to prevent Man-in-the-Middle (MITM) and address tampering attacks.
-4. **Pre-Flight RPC Simulation:** Every transaction is pre-simulated on-chain (`eth_estimateGas`) before requesting user signature, ensuring a strict Zero-Revert Policy where users never waste network gas on failed executions.
+**Версия:** 2.0  
+**Статус:** Production  
+**Архитектура:** Non-Custodial Multi-DEX & Cross-Chain Aggregator  
+**Стек:** Vanilla JavaScript (ES2022, Zero-Dependency), Cloudflare Pages / Workers Edge Middleware, EIP-6963, WalletConnect v2  
 
 ---
 
-## 2. High-Level Architecture Diagram
+## 1. Введение и Архитектурная Философия
+
+**CoinBlog Universal Exchange** - это высокопроизводительный децентрализованный агрегатор ликвидности и кроссчейн-мостов, объединяющий внутрисетевые свопы (Same-Chain Swaps) и межсетевые переводы (Cross-Chain Bridges) в едином интерфейсе для более чем 15 EVM-сетей.
+
+### Ключевые архитектурные принципы:
+1. **Zero-Dependency Vanilla JS:** Полный отказ от тяжелых фреймворков (React, Next.js, Vue) и сторонних пакетов node_modules. Клиентский код весит менее 80 КБ, загружается за миллисекунды и обеспечивает 100/100 в Google PageSpeed Insights.
+2. **Strict Non-Custodial & Exact Allowance:** Платформа не хранит приватные ключи и не запрашивает бесконечные разрешения (Max Uint256). Разрешение на перевод токенов выдается строго на сумму текущей сделки.
+3. **Edge Shielding & HMAC Cryptography:** Прямой доступ к API сторонних агрегаторов закрыт Cloudflare Workers. Все межсетевые шаги криптографически подписываются HMAC-SHA256 для исключения атак с подменой получателя (MITM / Address Poisoning).
+4. **Pre-Flight RPC Simulation:** Каждая транзакция симулируется через локальный RPC (eth_estimateGas) перед запросом подписи у пользователя, исключая потерю комиссии на неудачных транзакциях (Zero-Revert Policy).
+
+---
+
+## 2. Общая Архитектура Системы
 
 ```
                                     +-----------------------------------------+
@@ -54,31 +54,31 @@
 
 ---
 
-## 3. Client Core Implementation (`public/js/exchange.js`)
+## 3. Детальный Анализ Функций Клиента (public/js/exchange.js)
 
-### 3.1 Dynamic Route Discovery (`fetchRoutes`)
+### 3.1 Определение режима и умный роутинг (fetchRoutes)
 
-Determines operation mode based on source and destination chain IDs:
-- When `fromChainId === toChainId`: Activates **Same-Chain Swap** mode, dispatching parallel requests to 0x Protocol and ParaSwap.
-- When `fromChainId !== toChainId`: Activates **Cross-Chain Bridge** mode, querying intent-based and liquidity bridge routes via LI.FI.
+Функция fetchRoutes() определяет тип операции на основе выбранных сетей fromChainId и toChainId:
+- Если fromChainId === toChainId - активируется режим **Same-Chain Swap** с параллельным запросом к 0x Protocol и ParaSwap.
+- Если fromChainId !== toChainId - активируется режим **Cross-Chain Bridge** с запросом оптимальных мостов через LI.FI.
 
 ```javascript
 async function fetchRoutes(){
   const isSwap = fromChainId === toChainId;
   
   if (isSwap) {
-    // Parallel DEX aggregator queries
+    // Параллельный опрос DEX-агрегаторов
     const [zeroXRes, paraRes] = await Promise.allSettled([
       fetch0xQuote(fromTok, toTok, rawAmount, fromChainId, slippage, wallet),
       fetchParaswapQuote(fromTok, toTok, rawAmount, fromChainId, slippage, wallet)
     ]);
     
-    // Sort by maximum output token amount
+    // Сортировка по максимальной сумме на выходе
     routes = [zeroXRes.value, paraRes.value]
       .filter(Boolean)
       .sort((a, b) => (BigInt(b.toAmount) > BigInt(a.toAmount) ? 1 : -1));
   } else {
-    // Cross-chain routing with smart protocol filtering
+    // Запрос кроссчейн-маршрутов с фильтрацией мостов
     routes = await fetchBridgeRoutes(fromChainId, toChainId, fromTok.addr, toTok.addr, rawAmount, wallet);
   }
   
@@ -88,9 +88,9 @@ async function fetchRoutes(){
 
 ---
 
-### 3.2 Protocol Identification & Fee Filtering (`getPrimaryBridgeTool`)
+### 3.2 Автоопределение и брендинг протоколов (getPrimaryBridgeTool)
 
-Filters out aggregator fee collection steps (`Integrator Fee`) and extracts the genuine bridge protocol brand and icon:
+Для исключения технических шагов сбора комиссий (Integrator Fee) функция фильтрует служебные вызовы и извлекает реальный бренд протокола:
 
 ```javascript
 const IGNORED_TOOLS = new Set(['integrator fee', 'fee collection', 'custom fee', 'integrator-fee', 'lifi', 'bridge']);
@@ -119,9 +119,9 @@ function getPrimaryBridgeTool(route){
 
 ---
 
-### 3.3 Real-Time Token Security & Honeypot Scanner (`checkTokenSecurity`)
+### 3.3 Встроенный сканер безопасности GoPlus (checkTokenSecurity)
 
-Protects users against honeypot scams, transfer taxes, and malicious proxy implementations:
+Защищает пользователей от покупки токенов-ловушек (Honeypot) и скрытых налогов на смарт-контрактах:
 
 ```javascript
 async function checkTokenSecurity(address, chainId) {
@@ -133,12 +133,12 @@ async function checkTokenSecurity(address, chainId) {
   
   if (!info) return { safe: true, label: 'UNVERIFIED' };
   
-  // Whitelisted trusted tokens (USDC, USDT, DAI)
+  // Доверенные токены из белого списка (USDC, USDT, DAI)
   if (info.trust_list === 1 || info.trust_list === '1') {
     return { safe: true, label: 'VERIFIED', tax: 0 };
   }
   
-  // Detect honeypots and excessive taxes
+  // Обнаружение блокировки продаж или 100% налога
   const isHoneypot = info.is_honeypot === '1' || info.cannot_sell_all === '1';
   const buyTax = parseFloat(info.buy_tax || 0) * 100;
   const sellTax = parseFloat(info.sell_tax || 0) * 100;
@@ -153,9 +153,9 @@ async function checkTokenSecurity(address, chainId) {
 
 ---
 
-### 3.4 Exact Amount Token Approval (`checkAndApproveToken`)
+### 3.4 Безопасный аппрув точной суммы (checkAndApproveToken)
 
-Eliminates unlimited allowance vulnerabilities:
+Исключает риск кражи средств при потенциальном взломе стороннего смарт-контракта:
 
 ```javascript
 async function checkAndApproveToken(token, spender, amount, chainId, owner) {
@@ -167,7 +167,7 @@ async function checkAndApproveToken(token, spender, amount, chainId, owner) {
   const currentAllowance = await readAllowance(token, owner, spender);
   if (currentAllowance >= BigInt(amount)) return true;
   
-  // Standard ERC-20 approve(spender, exactAmount)
+  // Формирование ERC-20 approve(spender, exactAmount)
   const amountHex = BigInt(amount).toString(16).padStart(64, '0');
   const spenderHex = spender.toLowerCase().replace(/^0x/, '').padStart(64, '0');
   const data = '0x095ea7b3' + spenderHex + amountHex;
@@ -184,9 +184,9 @@ async function checkAndApproveToken(token, spender, amount, chainId, owner) {
 
 ---
 
-### 3.5 Pre-Flight Gas Simulation (`sendWalletTransaction`)
+### 3.5 Локальная симуляция перед отправкой (sendWalletTransaction)
 
-Runs RPC simulation before user prompt:
+Предотвращает потерю пользовательского газа при отмене транзакции на блокчейне:
 
 ```javascript
 async function sendWalletTransaction(request, chainId, label='transaction', options={}) {
@@ -201,7 +201,7 @@ async function sendWalletTransaction(request, chainId, label='transaction', opti
     value: normalizeWalletHex(request.value || 0)
   };
   
-  // Pre-flight simulation via wallet RPC
+  // Pre-flight симуляция через RPC кошелька
   let estimate;
   try {
     estimate = await _requestWallet('eth_estimateGas', [tx], { timeoutMs: 18000 });
@@ -209,18 +209,18 @@ async function sendWalletTransaction(request, chainId, label='transaction', opti
     throw new Error(`${label} simulation failed: ${e?.message || 'transaction would revert on-chain'}`);
   }
   
-  tx.gas = normalizeWalletHex(BigInt(estimate) * 115n / 100n); // 15% buffer against gas spikes
+  tx.gas = normalizeWalletHex(BigInt(estimate) * 115n / 100n); // Буфер 15% для защиты от спайков газа
   return await _requestWallet('eth_sendTransaction', [tx]);
 }
 ```
 
 ---
 
-## 4. Edge Security Layer (Cloudflare Workers)
+## 4. Серверный Слой Безопасности (Cloudflare Workers)
 
-### 4.1 Cryptographic Step Signing (`functions/api/_bridge-common.js`)
+### 4.1 Криптографическая подпись маршрутов HMAC-SHA256 (functions/api/_bridge-common.js)
 
-Seals route steps with HMAC-SHA256:
+Предотвращает подмену адреса получателя вредоносными расширениями браузера:
 
 ```javascript
 async function hmacHex(secret, message) {
@@ -253,9 +253,9 @@ export async function verifyBridgeStep(step, proof, env) {
 
 ---
 
-## 5. Supported Networks & Routing Protocols
+## 5. Матрица Поддерживаемых Сетей и Токенов
 
-| Network | Chain ID | Native Token | Swap Aggregators | Cross-Chain Protocols |
+| Сеть | Chain ID | Нативный токен | Протоколы обмена | Кроссчейн-мосты |
 | :--- | :--- | :--- | :--- | :--- |
 | **Ethereum** | `1` | `ETH` | 0x, ParaSwap, Uniswap | Across, Relay, Stargate, Celer |
 | **Base** | `8453` | `ETH` | 0x, ParaSwap, Aerodrome | Across, Relay, Layerswap |
@@ -275,20 +275,22 @@ export async function verifyBridgeStep(step, proof, env) {
 
 ---
 
-## 6. Threat Model & Security Mitigations
+## 6. Защита от Уязвимостей и Модель Угроз (Threat Model)
 
-1. **MEV Sandwich & Front-Running Protection:**
-   - Enforces contract-level `minBuyAmount` calculated via exact user slippage (0.01% - 5%).
-2. **Account Desynchronization Defense:**
-   - `assertActiveWalletAccount` verifies active wallet address before each on-chain interaction.
-3. **Address Poisoning Prevention:**
-   - Real-time address matching with visual alerts and confirmation gates.
-4. **Edge API Hardening:**
-   - IP-based rate limiting (`checkRateLimit`) and origin verification (`rejectDisallowedOrigin`).
+1. **Защита от сэндвич-атак (MEV Front-Running):**
+   - Автоматический расчет параметра minBuyAmount на основе выбранного slippage (0.01% - 5%).
+   - При превышении порога проскальзывания транзакция отклоняется смарт-контрактом роутера.
+2. **Защита от подмены активного кошелька (Account Desynchronization):**
+   - Функция assertActiveWalletAccount проверяет активный аккаунт перед каждым запросом к блокчейну.
+3. **Защита от Address Poisoning:**
+   - Интерфейс сверяет адрес получателя с адресом подключенного кошелька и выводит предупреждение при несовпадении.
+4. **Защита Edge API от DoS и Abuse:**
+   - Ограничение количества запросов по IP (checkRateLimit).
+   - Проверка заголовка Origin с блокировкой несанкционированных доменов.
 
 ---
 
-## 7. Licensing
+## 7. Лицензирование и Открытый Исходный Код
 
-CoinBlog Universal Exchange is open source under the **MIT License**.  
-Official Repository: [https://github.com/CoinBlogHQ/coinblog-defi-widgets](https://github.com/CoinBlogHQ/coinblog-defi-widgets)
+Исходный код виджета CoinBlog Universal Exchange распространяется под открытой лицензией **MIT License**.  
+Официальный репозиторий: [https://github.com/CoinBlogHQ/coinblog-defi-widgets](https://github.com/CoinBlogHQ/coinblog-defi-widgets)

@@ -2,9 +2,12 @@
 
 Open-source DeFi Exchange and Cross-Chain Bridge aggregator widget from [Coin Blog](https://coinbloghq.com).
 
-## Technical Whitepaper
+## 📄 Technical Whitepaper
 
-For an in-depth technical analysis of our routing algorithms, security mechanisms, HMAC signatures, and smart contract safety models, please read the [Official Technical Whitepaper (WHITEPAPER.md)](WHITEPAPER.md).
+- 🇬🇧 **[English Technical Whitepaper (WHITEPAPER.md)](WHITEPAPER.md)**
+- 🇷🇺 **[Русский технический Whitepaper (WHITEPAPER_RU.md)](WHITEPAPER_RU.md)**
+
+Detailed technical documentation covering routing algorithms, security mechanisms, HMAC signatures, and smart contract safety models.
 
 ## Architecture
 
