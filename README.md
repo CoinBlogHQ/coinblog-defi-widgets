@@ -2,6 +2,10 @@
 
 Open-source DeFi Exchange and Cross-Chain Bridge aggregator widget from [Coin Blog](https://coinbloghq.com).
 
+## Technical Whitepaper
+
+For an in-depth technical analysis of our routing algorithms, security mechanisms, HMAC signatures, and smart contract safety models, please read the [Official Technical Whitepaper (WHITEPAPER.md)](WHITEPAPER.md).
+
 ## Architecture
 
 The system is built with a **Zero-Dependency Vanilla JS** frontend and a secure **Edge Middleware** backend using Cloudflare Workers.
