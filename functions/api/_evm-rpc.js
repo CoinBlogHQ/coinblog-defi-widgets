@@ -61,8 +61,47 @@ export function normalizeChainId(value) {
 
 export function rpcUrls(chainId, env) {
   const cid = normalizeChainId(chainId);
-  const urls = [...(RPCS[cid] || [])];
-  if (cid === 8453 && env?.CDP_API_KEY) urls.unshift(`https://api.developer.coinbase.com/rpc/v1/base/${env.CDP_API_KEY}`);
+  const urls = [];
+  
+  if (env) {
+    if (env.ALCHEMY_API_KEY) {
+      const alchemyNetworks = {
+        1: 'eth-mainnet',
+        10: 'opt-mainnet',
+        56: 'bnb-mainnet',
+        137: 'polygon-mainnet',
+        8453: 'base-mainnet',
+        42161: 'arb-mainnet',
+        43114: 'avax-mainnet',
+        534352: 'scroll-mainnet',
+        59144: 'linea-mainnet',
+        324: 'zksync-mainnet'
+      };
+      if (alchemyNetworks[cid]) {
+        urls.push(`https://${alchemyNetworks[cid]}.g.alchemy.com/v2/${env.ALCHEMY_API_KEY}`);
+      }
+    }
+    
+    if (env.INFURA_API_KEY) {
+      const infuraNetworks = {
+        1: 'mainnet',
+        10: 'optimism-mainnet',
+        137: 'polygon-mainnet',
+        42161: 'arbitrum-mainnet',
+        43114: 'avalanche-mainnet',
+        59144: 'linea-mainnet'
+      };
+      if (infuraNetworks[cid]) {
+        urls.push(`https://${infuraNetworks[cid]}.infura.io/v3/${env.INFURA_API_KEY}`);
+      }
+    }
+
+    if (cid === 8453 && env.CDP_API_KEY) {
+      urls.push(`https://api.developer.coinbase.com/rpc/v1/base/${env.CDP_API_KEY}`);
+    }
+  }
+
+  urls.push(...(RPCS[cid] || []));
   return [...new Set(urls)];
 }
 

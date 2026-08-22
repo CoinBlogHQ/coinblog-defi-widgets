@@ -63,6 +63,26 @@ function decodeAbiString(hex) {
   }
 }
 
+
+async function fetchLifiToken(chainId, address) {
+  try {
+    const response = await fetch(`https://li.quest/v1/token?chain=${chainId}&token=${address}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || !data.symbol) return null;
+    return {
+      sym: data.symbol,
+      name: data.name || data.symbol,
+      dec: data.decimals || 18,
+      logo: data.logoURI || ''
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchExplorerToken(config, address) {
   if (!config?.explorer) return null;
   try {
@@ -139,7 +159,7 @@ export async function onRequest(context) {
   }
 
   const config = CHAIN_CONFIG[chainId];
-  const explorerToken = await fetchExplorerToken(config, address);
+  const explorerToken = (await fetchLifiToken(chainId, address)) || (await fetchExplorerToken(config, address));
   const rpcToken = explorerToken?.sym ? null : await fetchRpcToken(config, address);
   const token = explorerToken || rpcToken;
 

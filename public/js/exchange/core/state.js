@@ -1,0 +1,22 @@
+export const state = {
+  wallet: null,
+  fromChainId: 1,
+  toChainId: 42161,
+  fromTok: null,
+  toTok: null,
+  slippage: 0.5,
+  autoRefreshTimer: null,
+  quoteTimeLeft: 30,
+  routes: [],
+  selectedRouteIdx: 0,
+  quoteTimer: null,
+  bals: {},
+  txHistory: JSON.parse(localStorage.getItem('bridge_history') || '[]'),
+  bridgePollTimers: new Map(),
+  routesExpiresAt: 0,
+  bridgeBusy: false,
+  _routeReqId: 0,
+  tokModalFor: "from",
+  _bridgeNeedsApproval: false,
+  _lastBridgeApprove: null
+};

@@ -52,7 +52,7 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const { chainId, srcToken, destToken, amount, srcDecimals, destDecimals, slippageBps, taker } = Object.fromEntries(url.searchParams);
   const cid = parseInt(chainId, 10);
-  if (!SUPPORTED.has(cid)) return new Response(JSON.stringify({ error: `Chain ${chainId} not supported by Velora` }), { status: 400, headers: CORS });
+  if (!SUPPORTED.has(cid)) return new Response(JSON.stringify({ error: `Chain ${chainId} not supported by ParaSwap` }), { status: 400, headers: CORS });
   if (!isTokenRef(srcToken) || !isTokenRef(destToken)) return new Response(JSON.stringify({ error: 'Invalid token address' }), { status: 400, headers: CORS });
   if (String(srcToken).toLowerCase() === String(destToken).toLowerCase()) return new Response(JSON.stringify({ error: 'Source and destination token must differ' }), { status: 400, headers: CORS });
   if (!isNumericString(amount)) return new Response(JSON.stringify({ error: 'Invalid amount' }), { status: 400, headers: CORS });
@@ -81,9 +81,9 @@ export async function onRequest(context) {
 
     const route = priceData.priceRoute;
     const impact = priceImpact(route);
-    if (impact !== null && impact > 5) return new Response(JSON.stringify({ error: 'Velora price impact exceeds 5%' }), { status: 409, headers: CORS });
+    if (impact !== null && impact > 5) return new Response(JSON.stringify({ error: 'ParaSwap price impact exceeds 5%' }), { status: 409, headers: CORS });
     const allowanceTarget = isAddr(route.tokenTransferProxy) ? route.tokenTransferProxy : null;
-    if (!allowanceTarget) return new Response(JSON.stringify({ error: 'Velora did not provide a verified tokenTransferProxy' }), { status: 502, headers: CORS });
+    if (!allowanceTarget) return new Response(JSON.stringify({ error: 'ParaSwap did not provide a verified tokenTransferProxy' }), { status: 502, headers: CORS });
     const userAddr = taker && taker.length > 5 ? taker : null;
 
     let transaction = null;
@@ -172,6 +172,6 @@ export async function onRequest(context) {
       issues: transactionError ? { transaction: transactionError } : null,
     }), { status: 200, headers: CORS });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error?.message || 'Velora quote failed' }), { status: 500, headers: CORS });
+    return new Response(JSON.stringify({ error: error?.message || 'ParaSwap quote failed' }), { status: 500, headers: CORS });
   }
 }
