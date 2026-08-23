@@ -71,11 +71,41 @@ export function validateTransactionPolicy(txData, routeContext, label) {
     throw new Error(`Invalid ${label} transaction data (not hex)`);
   }
   
-  const value = String(txData.value || '0');
-  
-  // 4. Native token guard (If trading an ERC20, value MUST be 0 unless it's a bridge fee)
-  // We'll skip strict value=0 enforcement for bridges because they often require native gas fees.
-  // But we can check TTL here!
+  // 4. Native token guard
+  const rawValue = String(txData.value || '0');
+  let parsedValue = 0n;
+  try {
+    if (/^0x[0-9a-fA-F]+$/i.test(rawValue)) {
+      parsedValue = BigInt(rawValue);
+    } else if (/^\d+$/.test(rawValue)) {
+      parsedValue = BigInt(rawValue);
+    } else {
+      throw new Error('Not a number');
+    }
+  } catch (err) {
+    throw new Error(`Invalid ${label} transaction value format`);
+  }
+
+  if (parsedValue < 0n) {
+    throw new Error(`Invalid ${label} transaction value (negative)`);
+  }
+
+  if (label === 'approval' && parsedValue !== 0n) {
+    throw new Error('Approval transactions cannot have a native value attached');
+  }
+
+  if (label === 'swap' && routeContext && routeContext.txData) {
+    const expectedRaw = String(routeContext.txData.value || '0');
+    let expectedVal = 0n;
+    try {
+      if (/^0x[0-9a-fA-F]+$/i.test(expectedRaw)) expectedVal = BigInt(expectedRaw);
+      else if (/^\d+$/.test(expectedRaw)) expectedVal = BigInt(expectedRaw);
+    } catch (e) {}
+    
+    if (parsedValue > expectedVal) {
+      throw new Error('Swap transaction value exceeds quote requirement');
+    }
+  }
   
   // 5. TTL Guard
   if (routeContext && routeContext.normalized) {
